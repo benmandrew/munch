@@ -1,5 +1,6 @@
 extern crate pancurses;
 
+pub mod maze;
 pub mod window;
 
 fn pancurses_setup() -> pancurses::Window {
