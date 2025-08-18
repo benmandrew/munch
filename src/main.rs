@@ -1,19 +1,25 @@
 extern crate pancurses;
 
+pub mod window;
+
+fn pancurses_setup() -> pancurses::Window {
+    let terminal = pancurses::initscr();
+    pancurses::curs_set(0);
+    terminal.keypad(true);
+    terminal.nodelay(true);
+    terminal
+}
+
 fn main() {
-    let window = pancurses::initscr();
-
-    window.keypad(true);
-
-    window.printw("Press q to exit\n");
+    let terminal = pancurses_setup();
+    let window = window::Window::new(terminal);
+    window.draw_game();
     window.refresh();
 
     loop {
-        match window.getch() {
+        match window.get_input() {
             Some(pancurses::Input::KeyResize) => {
                 pancurses::resize_term(0, 0);
-                let (y, x) = window.get_max_yx();
-                window.mvaddstr(y - 1, x - 8, "Resized");
             }
             Some(pancurses::Input::Character('q')) => break,
             _ => (),
