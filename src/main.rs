@@ -1,7 +1,15 @@
 extern crate pancurses;
 
-pub mod maze;
-pub mod window;
+mod maze;
+mod window;
+
+struct CursesGuard;
+
+impl Drop for CursesGuard {
+    fn drop(&mut self) {
+        pancurses::endwin();
+    }
+}
 
 fn pancurses_setup() -> pancurses::Window {
     let terminal = pancurses::initscr();
@@ -12,11 +20,18 @@ fn pancurses_setup() -> pancurses::Window {
 }
 
 fn main() {
+    let _guard = CursesGuard;
     let terminal = pancurses_setup();
-    let window = window::Window::new(terminal);
-    window.draw_game();
+    let maze = match maze::Maze::from_file("resources/maze.txt") {
+        Ok(maze) => maze,
+        Err(e) => {
+            eprintln!("Error loading maze: {}", e);
+            return;
+        }
+    };
+    let window = window::Window::new(terminal, maze.height as i32, maze.width as i32);
+    window.draw_game(&maze);
     window.refresh();
-
     loop {
         match window.get_input() {
             Some(pancurses::Input::KeyResize) => {

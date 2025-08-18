@@ -53,9 +53,42 @@ impl Maze {
         })
     }
 
+    pub fn from_file(path: &str) -> Result<Self, String> {
+        match std::fs::read_to_string(path) {
+            Ok(contents) => Self::from_string(&contents),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
     pub fn get_tile(&self, x: usize, y: usize) -> Option<Tile> {
         if x < self.width && y < self.height {
             Some(self.maze[y * self.width + x])
+        } else {
+            None
+        }
+    }
+
+    pub fn iter(&self) -> MazeIterator {
+        MazeIterator {
+            maze: self,
+            current: 0,
+        }
+    }
+}
+
+pub struct MazeIterator<'a> {
+    maze: &'a Maze,
+    current: usize,
+}
+
+impl<'a> Iterator for MazeIterator<'a> {
+    type Item = &'a Tile;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < self.maze.maze.len() {
+            let tile = &self.maze.maze[self.current];
+            self.current += 1;
+            Some(tile)
         } else {
             None
         }
