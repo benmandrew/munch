@@ -12,15 +12,6 @@ pub struct Maze {
 }
 
 impl Maze {
-    pub fn new(width: usize, height: usize) -> Self {
-        let maze = vec![Tile::Path; width * height];
-        Maze {
-            width,
-            height,
-            maze,
-        }
-    }
-
     pub fn from_string(s: &str) -> Result<Self, String> {
         let lines: Vec<&str> = s.trim().split('\n').collect();
         let width = lines[0].len();
@@ -60,14 +51,6 @@ impl Maze {
         }
     }
 
-    pub fn get_tile(&self, x: usize, y: usize) -> Option<Tile> {
-        if x < self.width && y < self.height {
-            Some(self.maze[y * self.width + x])
-        } else {
-            None
-        }
-    }
-
     pub fn iter(&self) -> MazeIterator {
         MazeIterator {
             maze: self,
@@ -96,20 +79,19 @@ impl<'a> Iterator for MazeIterator<'a> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_maze_creation() {
-        let maze = Maze::new(5, 5);
-        assert_eq!(maze.width, 5);
-        assert_eq!(maze.height, 5);
-        for y in 0..5 {
-            for x in 0..5 {
-                assert_eq!(maze.get_tile(x, y), Some(Tile::Path));
-            }
+impl Maze {
+    fn get_tile(&self, x: usize, y: usize) -> Option<Tile> {
+        if x < self.width && y < self.height {
+            Some(self.maze[y * self.width + x])
+        } else {
+            None
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     #[test]
     fn test_maze_from_string() {

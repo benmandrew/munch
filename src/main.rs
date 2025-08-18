@@ -29,13 +29,15 @@ fn main() {
             return;
         }
     };
-    let window = window::Window::new(terminal, maze.height as i32, maze.width as i32);
+    let mut window = window::Window::new(terminal, maze.height, maze.width);
     window.draw_game(&maze);
     window.refresh();
     loop {
         match window.get_input() {
             Some(pancurses::Input::KeyResize) => {
                 pancurses::resize_term(0, 0);
+                window.resize(maze.height, maze.width);
+                window.draw_game(&maze);
             }
             Some(pancurses::Input::Character('q')) => break,
             _ => (),
