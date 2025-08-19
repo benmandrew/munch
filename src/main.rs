@@ -1,47 +1,40 @@
-extern crate pancurses;
+extern crate sdl2;
 
-mod maze;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use std::time;
+
+const FRAME_TIME: time::Duration = time::Duration::from_nanos(1_000_000_000u64 / 60);
+
 mod window;
 
-struct CursesGuard;
-
-impl Drop for CursesGuard {
-    fn drop(&mut self) {
-        pancurses::endwin();
-    }
-}
-
-fn pancurses_setup() -> pancurses::Window {
-    let terminal = pancurses::initscr();
-    pancurses::curs_set(0);
-    terminal.keypad(true);
-    terminal.nodelay(true);
-    terminal
-}
-
-fn main() {
-    let _guard = CursesGuard;
-    let terminal = pancurses_setup();
-    let maze = match maze::Maze::from_file("resources/maze.txt") {
-        Ok(maze) => maze,
-        Err(e) => {
-            eprintln!("Error loading maze: {}", e);
-            return;
-        }
-    };
-    let mut window = window::Window::new(terminal, maze.height, maze.width);
-    window.draw_game(&maze);
-    window.refresh();
-    loop {
-        match window.get_input() {
-            Some(pancurses::Input::KeyResize) => {
-                pancurses::resize_term(0, 0);
-                window.resize(maze.height, maze.width);
-                window.draw_game(&maze);
+pub fn main() {
+    let mut win = window::Window::new(800, 600);
+    win.canvas.set_draw_color(Color::RGB(0, 255, 255));
+    win.canvas.clear();
+    win.canvas.present();
+    let mut i = 0;
+    'running: loop {
+        let start = time::Instant::now();
+        i = (i + 1) % 255;
+        win.canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
+        win.canvas.clear();
+        for event in win.event_poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                _ => {}
             }
-            Some(pancurses::Input::Character('q')) => break,
-            _ => (),
+        }
+        // The rest of the game loop goes here...
+
+        win.canvas.present();
+        if start.elapsed() < FRAME_TIME {
+            ::std::thread::sleep(FRAME_TIME - start.elapsed());
         }
     }
-    pancurses::endwin();
 }
