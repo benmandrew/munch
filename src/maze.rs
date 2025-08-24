@@ -15,7 +15,6 @@ impl Maze {
     pub fn from_string(s: &str) -> Result<Self, String> {
         let lines: Vec<&str> = s.trim().split('\n').collect();
         let width = lines[0].len();
-        println!("{}", s);
         let height = lines.len();
         let mut maze = Vec::with_capacity(width * height);
         for (y, line) in lines.iter().enumerate() {

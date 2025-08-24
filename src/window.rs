@@ -1,51 +1,37 @@
-use sdl2::event;
-use sdl2::render;
-use sdl2::video;
-use sdl2::EventPump;
+use ggez::graphics::{self, Color, Image};
+use ggez::{Context, GameResult};
+
+use ggez::glam;
+
+use crate::maze;
 
 pub struct Window {
-    pub canvas: render::Canvas<video::Window>,
-    event_pump: EventPump,
+    image: Image,
 }
 
 impl Window {
-    pub fn new(width: usize, height: usize) -> Self {
-        let sdl_context = sdl2::init().unwrap();
-        let video_subsystem = sdl_context.video().unwrap();
-        let window = video_subsystem
-            .window("Munch", width as u32, height as u32)
-            .position_centered()
-            .build()
-            .unwrap();
-        let canvas = window.into_canvas().build().unwrap();
-        let event_pump = sdl_context.event_pump().unwrap();
-        Window { canvas, event_pump }
+    pub fn new(ctx: &mut Context) -> Window {
+        let image = match Image::from_path(ctx, "/pacman.bmp") {
+            Ok(img) => img,
+            Err(e) => {
+                eprintln!("Failed to load image: {}", e);
+                std::process::exit(1);
+            }
+        };
+        Window { image }
     }
 
-    pub fn event_poll_iter(&mut self) -> Vec<event::Event> {
-        self.event_pump.poll_iter().collect()
-    }
-}
-
-pub struct TextureStore<'a> {
-    texture_creator: render::TextureCreator<video::WindowContext>,
-    textures: std::collections::HashMap<String, render::Texture<'a>>,
-}
-
-impl<'a> TextureStore<'a> {
-    pub fn new(texture_creator: render::TextureCreator<video::WindowContext>) -> Self {
-        TextureStore {
-            texture_creator,
-            textures: std::collections::HashMap::new(),
+    pub fn draw(&mut self, ctx: &mut Context, maze: &maze::Maze) -> GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
+        for (i, row) in maze.iter().enumerate() {
+            let x = i % maze.width;
+            let y = i / maze.width;
+            if *row == maze::Tile::Path {
+                continue;
+            }
+            let dest = glam::vec2(x as f32 * 32.0, y as f32 * 32.0);
+            canvas.draw(&self.image, graphics::DrawParam::default().dest(dest))
         }
-    }
-
-    pub fn load_bmp(&'a mut self, name: &String, path: &std::path::Path) {
-        let surface = sdl2::surface::Surface::load_bmp(path).unwrap();
-        let texture = self
-            .texture_creator
-            .create_texture_from_surface(&surface)
-            .unwrap();
-        self.textures.insert(name.clone(), texture);
+        canvas.finish(ctx)
     }
 }
