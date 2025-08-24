@@ -1,4 +1,4 @@
-use ggez::graphics::{self, Color, Image};
+use ggez::graphics::{self, Canvas, Color, Image};
 use ggez::{Context, GameResult};
 
 use ggez::glam;
@@ -30,8 +30,7 @@ impl Window {
         }
     }
 
-    pub fn draw(&mut self, ctx: &mut Context, maze: &maze::Maze) -> GameResult {
-        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
+    fn draw_maze(&self, canvas: &mut Canvas, maze: &maze::Maze) -> (f32, f32) {
         let phys_maze_width = maze.width as f32 * SCALE;
         let phys_maze_height = maze.height as f32 * SCALE;
         let start_x = (self.width - phys_maze_width) / 2.0;
@@ -56,6 +55,38 @@ impl Window {
                     .color(Color::BLUE),
             );
         }
+        (start_x, start_y)
+    }
+
+    fn draw_munch(
+        &self,
+        canvas: &mut Canvas,
+        munch_x: f32,
+        munch_y: f32,
+        start_x: f32,
+        start_y: f32,
+    ) {
+        let pos = glam::Vec2::new(munch_x * SCALE + start_x, munch_y * SCALE + start_y);
+        canvas.draw(&self.image, graphics::DrawParam::new().dest(pos));
+    }
+
+    pub fn draw(
+        &mut self,
+        ctx: &mut Context,
+        maze: &maze::Maze,
+        munch_x: usize,
+        munch_y: usize,
+    ) -> GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
+        canvas.set_sampler(graphics::Sampler::nearest_clamp());
+        let (start_x, start_y) = self.draw_maze(&mut canvas, maze);
+        self.draw_munch(
+            &mut canvas,
+            munch_x as f32,
+            munch_y as f32,
+            start_x,
+            start_y,
+        );
         canvas.finish(ctx)
     }
 

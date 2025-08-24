@@ -50,11 +50,22 @@ impl Maze {
         }
     }
 
-    pub fn iter(&self) -> MazeIterator {
+    pub fn iter(&self) -> MazeIterator<'_> {
         MazeIterator {
             maze: self,
             current: 0,
         }
+    }
+
+    fn index(&self, x: usize, y: usize) -> usize {
+        y * self.width + x
+    }
+
+    pub fn is_wall(&self, x: usize, y: usize) -> bool {
+        matches!(
+            self.maze.get(self.index(x % self.width, y % self.height)),
+            Some(&Tile::Wall)
+        )
     }
 }
 
