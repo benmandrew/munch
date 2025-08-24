@@ -1,3 +1,4 @@
+use ggez::error::GameError;
 use ggez::event::EventHandler;
 use ggez::{Context, GameResult};
 
@@ -31,5 +32,15 @@ impl EventHandler for Game {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         self.window.draw(ctx, &self.maze)
+    }
+
+    fn resize_event(
+        &mut self,
+        _ctx: &mut Context,
+        width: f32,
+        height: f32,
+    ) -> Result<(), GameError> {
+        self.window.resize(width, height);
+        Ok(())
     }
 }
