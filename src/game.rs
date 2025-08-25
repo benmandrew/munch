@@ -13,7 +13,7 @@ pub struct Game {
     munch: munch::Munch,
     spin_sleep: spin_sleep::SpinSleeper,
     last_game_update: std::time::Instant,
-    moving_direction: munch::Direction,
+    move_direction: munch::Direction,
 }
 
 impl Game {
@@ -35,7 +35,7 @@ impl Game {
             munch,
             spin_sleep,
             last_game_update: std::time::Instant::now(),
-            moving_direction: munch::Direction::Still,
+            move_direction: munch::Direction::Still,
         }
     }
 }
@@ -43,10 +43,10 @@ impl Game {
 impl Game {
     fn handle_movement(&mut self, keycode: KeyCode) {
         match keycode {
-            KeyCode::Up => self.moving_direction = munch::Direction::Up,
-            KeyCode::Down => self.moving_direction = munch::Direction::Down,
-            KeyCode::Left => self.moving_direction = munch::Direction::Left,
-            KeyCode::Right => self.moving_direction = munch::Direction::Right,
+            KeyCode::Up => self.move_direction = munch::Direction::Up,
+            KeyCode::Down => self.move_direction = munch::Direction::Down,
+            KeyCode::Left => self.move_direction = munch::Direction::Left,
+            KeyCode::Right => self.move_direction = munch::Direction::Right,
             _ => {}
         }
     }
@@ -57,7 +57,9 @@ impl EventHandler for Game {
         self.spin_sleep
             .sleep_until(self.last_game_update + std::time::Duration::from_millis(16));
 
-        self.munch.walk(self.moving_direction, &self.maze);
+        let time_delta = self.last_game_update.elapsed().as_millis() as f32 / 1000.0;
+
+        self.munch.walk(self.move_direction, &self.maze, time_delta);
 
         self.last_game_update = std::time::Instant::now();
         Ok(())
@@ -84,8 +86,7 @@ impl EventHandler for Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.window
-            .draw(ctx, &self.maze, self.munch.x, self.munch.y)
+        self.window.draw(ctx, &self.maze, &self.munch)
     }
 
     fn resize_event(

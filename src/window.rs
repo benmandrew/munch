@@ -4,6 +4,7 @@ use ggez::{Context, GameResult};
 use ggez::glam;
 
 use crate::maze;
+use crate::munch;
 
 const SCALE: f32 = 32.0;
 
@@ -58,14 +59,8 @@ impl Window {
         (start_x, start_y)
     }
 
-    fn draw_munch(
-        &self,
-        canvas: &mut Canvas,
-        munch_x: f32,
-        munch_y: f32,
-        start_x: f32,
-        start_y: f32,
-    ) {
+    fn draw_munch(&self, canvas: &mut Canvas, munch: &munch::Munch, start_x: f32, start_y: f32) {
+        let (munch_x, munch_y) = munch.get_draw_pos();
         let pos = glam::Vec2::new(munch_x * SCALE + start_x, munch_y * SCALE + start_y);
         canvas.draw(&self.image, graphics::DrawParam::new().dest(pos));
     }
@@ -74,19 +69,12 @@ impl Window {
         &mut self,
         ctx: &mut Context,
         maze: &maze::Maze,
-        munch_x: usize,
-        munch_y: usize,
+        munch: &munch::Munch,
     ) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
         canvas.set_sampler(graphics::Sampler::nearest_clamp());
         let (start_x, start_y) = self.draw_maze(&mut canvas, maze);
-        self.draw_munch(
-            &mut canvas,
-            munch_x as f32,
-            munch_y as f32,
-            start_x,
-            start_y,
-        );
+        self.draw_munch(&mut canvas, munch, start_x, start_y);
         canvas.finish(ctx)
     }
 

@@ -20,6 +20,8 @@ fn init_context() -> (Context, EventLoop<()>) {
 }
 
 fn main() {
+    colog::init();
+
     let (mut ctx, event_loop) = init_context();
 
     let game = game::Game::new(&mut ctx);
