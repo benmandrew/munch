@@ -65,6 +65,8 @@ impl EventHandler for Game {
         let time_delta = self.last_game_update.elapsed().as_millis() as f32 / 1000.0;
 
         self.munch.walk(self.move_direction, &self.maze, time_delta);
+        let dots_eaten = self.maze.eat_dots(&self.munch);
+        self.score += dots_eaten as u32 * 10;
 
         self.last_game_update = std::time::Instant::now();
         Ok(())

@@ -13,7 +13,6 @@ pub struct Window {
     image: Image,
     width: f32,
     height: f32,
-    text: Text,
 }
 
 impl Window {
@@ -26,17 +25,14 @@ impl Window {
                 std::process::exit(1);
             }
         };
-        let text = Text::new("Hello, World!");
         Window {
             image,
             width: size.width as f32,
             height: size.height as f32,
-            text,
         }
     }
 
     fn draw_wall(&self, canvas: &mut Canvas, x: f32, y: f32) {
-        println!("Drawing wall at ({}, {})", x, y);
         let rect = graphics::Rect::new(x, y, SCALE, SCALE);
         canvas.draw(
             &graphics::Quad,
@@ -58,10 +54,10 @@ impl Window {
         );
     }
 
-    fn draw_pellet(&self, canvas: &mut Canvas, x: f32, y: f32) {
-        let pellet_size = SCALE * PELLET_SCALE;
-        let offset = (SCALE - pellet_size) / 2.0;
-        let rect = graphics::Rect::new(x + offset, y + offset, pellet_size, pellet_size);
+    fn draw_dot(&self, canvas: &mut Canvas, x: f32, y: f32) {
+        let dot_size = SCALE * PELLET_SCALE;
+        let offset = (SCALE - dot_size) / 2.0;
+        let rect = graphics::Rect::new(x + offset, y + offset, dot_size, dot_size);
         canvas.draw(
             &graphics::Quad,
             graphics::DrawParam::new()
@@ -82,7 +78,7 @@ impl Window {
             match tile {
                 maze::Tile::Wall => self.draw_wall(canvas, x, y),
                 maze::Tile::PlayerImpassable => self.draw_player_impassable(canvas, x, y),
-                maze::Tile::Pellet => self.draw_pellet(canvas, x, y),
+                maze::Tile::Dot => self.draw_dot(canvas, x, y),
                 maze::Tile::Path => continue,
             };
         }

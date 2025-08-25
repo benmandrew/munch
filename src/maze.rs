@@ -1,17 +1,19 @@
+use crate::munch;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tile {
     Wall,
     Path,
     PlayerImpassable,
-    Pellet,
+    Dot,
 }
 
 pub fn player_passable(tile: &Tile) -> bool {
-    matches!(tile, Tile::Path | Tile::Pellet)
+    matches!(tile, Tile::Path | Tile::Dot)
 }
 
 pub fn ghost_passable(tile: &Tile) -> bool {
-    matches!(tile, Tile::Path | Tile::PlayerImpassable | Tile::Pellet)
+    matches!(tile, Tile::Path | Tile::PlayerImpassable | Tile::Dot)
 }
 
 #[derive(Debug)]
@@ -41,7 +43,7 @@ impl Maze {
                     '#' => maze.push(Tile::Wall),
                     ' ' => maze.push(Tile::Path),
                     '=' => maze.push(Tile::PlayerImpassable),
-                    '.' => maze.push(Tile::Pellet),
+                    '.' => maze.push(Tile::Dot),
                     _ => {
                         return Err(format!("Unknown tile character '{}' at ({}, {})", c, x, y));
                     }
@@ -79,6 +81,19 @@ impl Maze {
                 .get(self.index(x % self.width, y % self.height))
                 .unwrap(),
         )
+    }
+
+    pub fn eat_dots(&mut self, munch: &munch::Munch) -> usize {
+        let covering_tiles = munch.get_covering_tiles(0.45);
+        let mut eaten = 0;
+        for (x, y) in covering_tiles {
+            if self.maze.get(self.index(x, y)) == Some(&Tile::Dot) {
+                eaten += 1;
+                let index = self.index(x, y);
+                self.maze[index] = Tile::Path;
+            }
+        }
+        eaten
     }
 }
 

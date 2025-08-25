@@ -53,6 +53,23 @@ impl Munch {
         (x, y)
     }
 
+    /// Get the tile coordinates covered by Munch
+    /// We include the current discrete tile, as well as the tile in front of
+    /// Munch if the progress to the next square is greater than the threshold
+    pub fn get_covering_tiles(&self, threshold: f32) -> Vec<(usize, usize)> {
+        let mut v = vec![(self.x, self.y)];
+        if self.progress_to_next_square > threshold {
+            match self.move_direction {
+                Direction::Up => v.push((self.x, self.y - 1)),
+                Direction::Down => v.push((self.x, self.y + 1)),
+                Direction::Left => v.push((self.x - 1, self.y)),
+                Direction::Right => v.push((self.x + 1, self.y)),
+                Direction::Still => {}
+            }
+        }
+        v
+    }
+
     pub fn walk(&mut self, direction: Direction, maze: &maze::Maze, time_delta: f32) {
         let offset = 3.0 * time_delta;
         if self.move_direction == Direction::Still {
