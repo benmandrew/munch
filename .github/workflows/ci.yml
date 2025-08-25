@@ -3,27 +3,21 @@ name: CI
 on: [ push, pull_request ]
 
 jobs:
-  fmt:
+  test:
     runs-on: ubuntu-latest
     steps:
+      - name: Install Packages
+        run: sudo apt update && sudo apt install libasound2-dev libudev-dev pkg-config
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      - run: cargo fmt --check
+      - name: Check formatting
+        run: cargo fmt -- --check
+      - name: Check Clippy
+        run: cargo clippy -- -D clippy::all
+      - name: Test
+        run: cargo test
+      - name: Build
+        run: cargo build --release
 
-  clippy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - run: cargo clippy
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test
