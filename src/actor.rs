@@ -8,7 +8,7 @@ pub enum Direction {
     Right,
 }
 
-pub struct Munch {
+pub struct Actor {
     pub x: usize,
     pub y: usize,
     progress_to_next_square: f32,
@@ -30,14 +30,18 @@ fn can_reverse(progress: f32, offset: f32) -> bool {
     progress >= offset * 2.0
 }
 
-impl Munch {
+impl Actor {
     pub fn new(x: usize, y: usize) -> Self {
-        Munch {
+        Actor {
             x,
             y,
             progress_to_next_square: 0.0,
             move_direction: Direction::Still,
         }
+    }
+
+    pub fn get_pos(&self) -> (usize, usize) {
+        (self.x, self.y)
     }
 
     pub fn get_draw_pos(&self) -> (f32, f32) {
@@ -53,9 +57,9 @@ impl Munch {
         (x, y)
     }
 
-    /// Get the tile coordinates covered by Munch
+    /// Get the tile coordinates covered by Actor
     /// We include the current discrete tile, as well as the tile in front of
-    /// Munch if the progress to the next square is greater than the threshold
+    /// Actor if the progress to the next square is greater than the threshold
     pub fn get_covering_tiles(&self, threshold: f32) -> Vec<(usize, usize)> {
         let mut v = vec![(self.x, self.y)];
         if self.progress_to_next_square > threshold {
@@ -70,7 +74,9 @@ impl Munch {
         v
     }
 
-    pub fn walk(&mut self, direction: Direction, maze: &maze::Maze, time_delta: f32) {
+    /// Walk the actor in the specified direction, taking into account the maze and time delta
+    /// Return a boolean indicating whether the actor changed discrete position
+    pub fn walk(&mut self, direction: Direction, maze: &maze::Maze, time_delta: f32) -> bool {
         let offset = 3.0 * time_delta;
         if self.move_direction == Direction::Still {
             self.move_direction = direction;
@@ -224,12 +230,13 @@ impl Munch {
             }
             _ => {}
         }
-        self.update_discrete_position(maze);
+        self.update_discrete_position(maze)
     }
 
-    fn update_discrete_position(&mut self, maze: &maze::Maze) {
+    /// Return a boolean indicating whether the actor changed discrete position
+    fn update_discrete_position(&mut self, maze: &maze::Maze) -> bool {
         if self.progress_to_next_square < 1.0 {
-            return;
+            return false;
         }
         self.progress_to_next_square = 0.0;
         match self.move_direction {
@@ -263,5 +270,6 @@ impl Munch {
             }
             _ => {}
         }
+        return true;
     }
 }

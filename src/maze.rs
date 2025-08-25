@@ -1,4 +1,6 @@
-use crate::munch;
+use pathfinding::directed::astar;
+
+use crate::actor;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tile {
@@ -83,7 +85,15 @@ impl Maze {
         )
     }
 
-    pub fn eat_dots(&mut self, munch: &munch::Munch) -> usize {
+    fn is_ghost_passable(&self, x: usize, y: usize) -> bool {
+        ghost_passable(
+            self.maze
+                .get(self.index(x % self.width, y % self.height))
+                .unwrap(),
+        )
+    }
+
+    pub fn eat_dots(&mut self, munch: &actor::Actor) -> usize {
         let covering_tiles = munch.get_covering_tiles(0.45);
         let mut eaten = 0;
         for (x, y) in covering_tiles {
@@ -94,6 +104,49 @@ impl Maze {
             }
         }
         eaten
+    }
+
+    fn ghost_successor_tiles(&self, pos: &(usize, usize)) -> Vec<(usize, usize)> {
+        let mut successors = Vec::new();
+        let (x, y) = *pos;
+        // Check all four directions
+        if self.is_ghost_passable(x, y - 1) {
+            successors.push((x, y - 1));
+        }
+        if self.is_ghost_passable(x + 1, y) {
+            successors.push((x + 1, y));
+        }
+        if self.is_ghost_passable(x, y + 1) {
+            successors.push((x, y + 1));
+        }
+        if self.is_ghost_passable(x - 1, y) {
+            successors.push((x - 1, y));
+        }
+        successors
+    }
+
+    fn ghost_successors_with_cost(&self, pos: &(usize, usize)) -> Vec<((usize, usize), u32)> {
+        self.ghost_successor_tiles(pos)
+            .into_iter()
+            .map(|pos| (pos, 1)) // Uniform cost of 1 for each move
+            .collect()
+    }
+
+    pub fn shortest_path(
+        &self,
+        start: &(usize, usize),
+        goal: &(usize, usize),
+    ) -> Option<Vec<(usize, usize)>> {
+        let heuristic = |&(x, y): &(usize, usize)| {
+            ((goal.0 as isize - x as isize).abs() + (goal.1 as isize - y as isize).abs()) as u32
+        };
+        let result = astar::astar(
+            start,
+            |pos: &(usize, usize)| self.ghost_successors_with_cost(pos),
+            heuristic,
+            |pos: &(usize, usize)| pos == goal,
+        );
+        result.map(|(path, _cost)| path)
     }
 }
 

@@ -2,9 +2,10 @@ use ggez::conf::WindowMode;
 use ggez::event::{self, EventLoop};
 use ggez::{Context, ContextBuilder};
 
+mod actor;
 mod game;
+mod ghost;
 mod maze;
-mod munch;
 mod window;
 
 fn init_context() -> (Context, EventLoop<()>) {

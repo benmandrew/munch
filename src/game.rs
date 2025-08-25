@@ -3,19 +3,18 @@ use ggez::event::EventHandler;
 use ggez::input::keyboard::{KeyCode, KeyInput};
 use ggez::{Context, GameResult};
 
-use crate::maze;
-use crate::munch;
-use crate::window;
+use crate::{actor, ghost, maze, window};
 
 const FRAME_TIME: f32 = 1000.0 / 120.0;
 
 pub struct Game {
     window: window::Window,
     maze: maze::Maze,
-    munch: munch::Munch,
+    munch: actor::Actor,
+    ghosts: Vec<ghost::Ghost>,
     spin_sleep: spin_sleep::SpinSleeper,
     last_game_update: std::time::Instant,
-    move_direction: munch::Direction,
+    move_direction: actor::Direction,
     score: u32,
 }
 
@@ -29,16 +28,19 @@ impl Game {
                 std::process::exit(1);
             }
         };
-        let munch = munch::Munch::new(1, 1);
+        let munch = actor::Actor::new(10, 16);
+        let mut ghosts = vec![ghost::Ghost::new(8, 10)];
+        // ghosts[0].generate_path(&maze, (1, 1));
         let spin_sleep = spin_sleep::SpinSleeper::new(100_000)
             .with_spin_strategy(spin_sleep::SpinStrategy::YieldThread);
         Game {
             window,
             maze,
             munch,
+            ghosts,
             spin_sleep,
             last_game_update: std::time::Instant::now(),
-            move_direction: munch::Direction::Still,
+            move_direction: actor::Direction::Still,
             score: 0,
         }
     }
@@ -47,10 +49,10 @@ impl Game {
 impl Game {
     fn handle_movement(&mut self, keycode: KeyCode) {
         match keycode {
-            KeyCode::Up => self.move_direction = munch::Direction::Up,
-            KeyCode::Down => self.move_direction = munch::Direction::Down,
-            KeyCode::Left => self.move_direction = munch::Direction::Left,
-            KeyCode::Right => self.move_direction = munch::Direction::Right,
+            KeyCode::Up => self.move_direction = actor::Direction::Up,
+            KeyCode::Down => self.move_direction = actor::Direction::Down,
+            KeyCode::Left => self.move_direction = actor::Direction::Left,
+            KeyCode::Right => self.move_direction = actor::Direction::Right,
             _ => {}
         }
     }
@@ -67,6 +69,10 @@ impl EventHandler for Game {
         self.munch.walk(self.move_direction, &self.maze, time_delta);
         let dots_eaten = self.maze.eat_dots(&self.munch);
         self.score += dots_eaten as u32 * 10;
+
+        for ghost in &mut self.ghosts {
+            ghost.move_along_path(&self.maze, time_delta);
+        }
 
         self.last_game_update = std::time::Instant::now();
         Ok(())
@@ -93,7 +99,8 @@ impl EventHandler for Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.window.draw(ctx, &self.maze, &self.munch, self.score)
+        self.window
+            .draw(ctx, &self.maze, &self.munch, &self.ghosts, self.score)
     }
 
     fn resize_event(
