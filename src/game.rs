@@ -7,6 +7,8 @@ use crate::maze;
 use crate::munch;
 use crate::window;
 
+const FRAME_TIME: f32 = 1000.0 / 120.0;
+
 pub struct Game {
     window: window::Window,
     maze: maze::Maze,
@@ -14,6 +16,7 @@ pub struct Game {
     spin_sleep: spin_sleep::SpinSleeper,
     last_game_update: std::time::Instant,
     move_direction: munch::Direction,
+    score: u32,
 }
 
 impl Game {
@@ -36,6 +39,7 @@ impl Game {
             spin_sleep,
             last_game_update: std::time::Instant::now(),
             move_direction: munch::Direction::Still,
+            score: 0,
         }
     }
 }
@@ -54,8 +58,9 @@ impl Game {
 
 impl EventHandler for Game {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        self.spin_sleep
-            .sleep_until(self.last_game_update + std::time::Duration::from_millis(16));
+        self.spin_sleep.sleep_until(
+            self.last_game_update + std::time::Duration::from_millis(FRAME_TIME as u64),
+        );
 
         let time_delta = self.last_game_update.elapsed().as_millis() as f32 / 1000.0;
 
@@ -86,7 +91,7 @@ impl EventHandler for Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.window.draw(ctx, &self.maze, &self.munch)
+        self.window.draw(ctx, &self.maze, &self.munch, self.score)
     }
 
     fn resize_event(

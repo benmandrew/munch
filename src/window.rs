@@ -1,4 +1,4 @@
-use ggez::graphics::{self, Canvas, Color, Image};
+use ggez::graphics::{self, Canvas, Color, Image, Text};
 use ggez::{Context, GameResult};
 
 use ggez::glam;
@@ -7,11 +7,13 @@ use crate::maze;
 use crate::munch;
 
 const SCALE: f32 = 32.0;
+const PELLET_SCALE: f32 = 0.2;
 
 pub struct Window {
     image: Image,
     width: f32,
     height: f32,
+    text: Text,
 }
 
 impl Window {
@@ -24,11 +26,49 @@ impl Window {
                 std::process::exit(1);
             }
         };
+        let text = Text::new("Hello, World!");
         Window {
             image,
             width: size.width as f32,
             height: size.height as f32,
+            text,
         }
+    }
+
+    fn draw_wall(&self, canvas: &mut Canvas, x: f32, y: f32) {
+        println!("Drawing wall at ({}, {})", x, y);
+        let rect = graphics::Rect::new(x, y, SCALE, SCALE);
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest(rect.point())
+                .scale(rect.size())
+                .color(Color::BLUE),
+        );
+    }
+
+    fn draw_player_impassable(&self, canvas: &mut Canvas, x: f32, y: f32) {
+        let rect = graphics::Rect::new(x, y, SCALE, SCALE);
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest(rect.point())
+                .scale(rect.size())
+                .color(Color::WHITE),
+        );
+    }
+
+    fn draw_pellet(&self, canvas: &mut Canvas, x: f32, y: f32) {
+        let pellet_size = SCALE * PELLET_SCALE;
+        let offset = (SCALE - pellet_size) / 2.0;
+        let rect = graphics::Rect::new(x + offset, y + offset, pellet_size, pellet_size);
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest(rect.point())
+                .scale(rect.size())
+                .color(Color::MAGENTA),
+        );
     }
 
     fn draw_maze(&self, canvas: &mut Canvas, maze: &maze::Maze) -> (f32, f32) {
@@ -36,27 +76,15 @@ impl Window {
         let phys_maze_height = maze.height as f32 * SCALE;
         let start_x = (self.width - phys_maze_width) / 2.0;
         let start_y = (self.height - phys_maze_height) / 2.0;
-        for (i, row) in maze.iter().enumerate() {
-            let x = i % maze.width;
-            let y = i / maze.width;
-            let colour = match row {
-                maze::Tile::Wall => Color::BLUE,
-                maze::Tile::PlayerImpassable => Color::WHITE,
+        for (i, tile) in maze.iter().enumerate() {
+            let x = (i % maze.width) as f32 * SCALE + start_x;
+            let y = (i / maze.width) as f32 * SCALE + start_y;
+            match tile {
+                maze::Tile::Wall => self.draw_wall(canvas, x, y),
+                maze::Tile::PlayerImpassable => self.draw_player_impassable(canvas, x, y),
+                maze::Tile::Pellet => self.draw_pellet(canvas, x, y),
                 maze::Tile::Path => continue,
             };
-            let rect = graphics::Rect::new(
-                start_x + x as f32 * SCALE,
-                start_y + y as f32 * SCALE,
-                SCALE,
-                SCALE,
-            );
-            canvas.draw(
-                &graphics::Quad,
-                graphics::DrawParam::new()
-                    .dest(rect.point())
-                    .scale(rect.size())
-                    .color(colour),
-            );
         }
         (start_x, start_y)
     }
@@ -67,16 +95,36 @@ impl Window {
         canvas.draw(&self.image, graphics::DrawParam::new().dest(pos));
     }
 
+    fn draw_fps(&self, ctx: &Context, canvas: &mut Canvas) {
+        let fps = ctx.time.fps().round();
+        let fps_display = Text::new(format!("FPS: {fps}"));
+        canvas.draw(
+            &fps_display,
+            graphics::DrawParam::from([200.0, 0.0]).color(Color::WHITE),
+        );
+    }
+
+    fn draw_score(&self, canvas: &mut Canvas, score: u32) {
+        let score_display = Text::new(format!("Score: {}", score));
+        canvas.draw(
+            &score_display,
+            graphics::DrawParam::from([200.0, 20.0]).color(Color::WHITE),
+        );
+    }
+
     pub fn draw(
         &mut self,
         ctx: &mut Context,
         maze: &maze::Maze,
         munch: &munch::Munch,
+        score: u32,
     ) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
         canvas.set_sampler(graphics::Sampler::nearest_clamp());
         let (start_x, start_y) = self.draw_maze(&mut canvas, maze);
         self.draw_munch(&mut canvas, munch, start_x, start_y);
+        self.draw_fps(ctx, &mut canvas);
+        self.draw_score(&mut canvas, score);
         canvas.finish(ctx)
     }
 

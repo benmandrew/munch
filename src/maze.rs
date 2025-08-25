@@ -3,6 +3,15 @@ pub enum Tile {
     Wall,
     Path,
     PlayerImpassable,
+    Pellet,
+}
+
+pub fn player_passable(tile: &Tile) -> bool {
+    matches!(tile, Tile::Path | Tile::Pellet)
+}
+
+pub fn ghost_passable(tile: &Tile) -> bool {
+    matches!(tile, Tile::Path | Tile::PlayerImpassable | Tile::Pellet)
 }
 
 #[derive(Debug)]
@@ -32,6 +41,7 @@ impl Maze {
                     '#' => maze.push(Tile::Wall),
                     ' ' => maze.push(Tile::Path),
                     '=' => maze.push(Tile::PlayerImpassable),
+                    '.' => maze.push(Tile::Pellet),
                     _ => {
                         return Err(format!("Unknown tile character '{}' at ({}, {})", c, x, y));
                     }
@@ -64,9 +74,10 @@ impl Maze {
     }
 
     pub fn is_player_passable(&self, x: usize, y: usize) -> bool {
-        matches!(
-            self.maze.get(self.index(x % self.width, y % self.height)),
-            Some(&Tile::Path)
+        player_passable(
+            self.maze
+                .get(self.index(x % self.width, y % self.height))
+                .unwrap(),
         )
     }
 }
@@ -111,7 +122,7 @@ mod tests {
 #####
 #   #
 #=#=#
-#   #
+#...#
 #####
 ";
         let maze = Maze::from_string(maze_str);
