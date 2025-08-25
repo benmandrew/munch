@@ -39,9 +39,11 @@ impl Window {
         for (i, row) in maze.iter().enumerate() {
             let x = i % maze.width;
             let y = i / maze.width;
-            if *row == maze::Tile::Path {
-                continue;
-            }
+            let colour = match row {
+                maze::Tile::Wall => Color::BLUE,
+                maze::Tile::PlayerImpassable => Color::WHITE,
+                maze::Tile::Path => continue,
+            };
             let rect = graphics::Rect::new(
                 start_x + x as f32 * SCALE,
                 start_y + y as f32 * SCALE,
@@ -53,7 +55,7 @@ impl Window {
                 graphics::DrawParam::new()
                     .dest(rect.point())
                     .scale(rect.size())
-                    .color(Color::BLUE),
+                    .color(colour),
             );
         }
         (start_x, start_y)

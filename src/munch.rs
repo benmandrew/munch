@@ -61,29 +61,29 @@ impl Munch {
         match (self.move_direction, direction) {
             // Maintaining direction
             (Direction::Up, Direction::Up) => {
-                if !maze.is_wall(self.x, self.y + maze.height - 1) {
+                if maze.is_player_passable(self.x, self.y + maze.height - 1) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Right, Direction::Right) => {
-                if !maze.is_wall(self.x + 1, self.y) {
+                if maze.is_player_passable(self.x + 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Down, Direction::Down) => {
-                if !maze.is_wall(self.x, self.y + 1) {
+                if maze.is_player_passable(self.x, self.y + 1) {
                     self.progress_to_next_square += offset;
                 }
             }
 
             (Direction::Left, Direction::Left) => {
-                if !maze.is_wall(self.x + maze.width - 1, self.y) {
+                if maze.is_player_passable(self.x + maze.width - 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
             // Reversing direction
             (Direction::Down, Direction::Up) => {
-                if !maze.is_wall(self.x, self.y + maze.height - 1)
+                if maze.is_player_passable(self.x, self.y + maze.height - 1)
                     || can_reverse(self.progress_to_next_square, offset)
                 {
                     self.y += 1;
@@ -93,7 +93,7 @@ impl Munch {
                 }
             }
             (Direction::Left, Direction::Right) => {
-                if !maze.is_wall(self.x + 1, self.y)
+                if maze.is_player_passable(self.x + 1, self.y)
                     || can_reverse(self.progress_to_next_square, offset)
                 {
                     self.x -= 1;
@@ -103,7 +103,7 @@ impl Munch {
                 }
             }
             (Direction::Up, Direction::Down) => {
-                if !maze.is_wall(self.x, self.y + 1)
+                if maze.is_player_passable(self.x, self.y + 1)
                     || can_reverse(self.progress_to_next_square, offset)
                 {
                     self.y -= 1;
@@ -114,7 +114,7 @@ impl Munch {
             }
 
             (Direction::Right, Direction::Left) => {
-                if !maze.is_wall(self.x + maze.width - 1, self.y)
+                if maze.is_player_passable(self.x + maze.width - 1, self.y)
                     || can_reverse(self.progress_to_next_square, offset)
                 {
                     self.x += 1;
@@ -125,83 +125,83 @@ impl Munch {
             }
             // Clockwise turn
             (Direction::Left, Direction::Up) => {
-                if !maze.is_wall(self.x, self.y + maze.height - 1)
+                if maze.is_player_passable(self.x, self.y + maze.height - 1)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Up;
-                } else if !maze.is_wall(self.x - 1, self.y) {
+                } else if maze.is_player_passable(self.x - 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Up, Direction::Right) => {
-                if !maze.is_wall(self.x + 1, self.y)
+                if maze.is_player_passable(self.x + 1, self.y)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Right;
-                } else if !maze.is_wall(self.x, self.y + maze.height - 1) {
+                } else if maze.is_player_passable(self.x, self.y + maze.height - 1) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Right, Direction::Down) => {
-                if !maze.is_wall(self.x, self.y + 1)
+                if maze.is_player_passable(self.x, self.y + 1)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Down;
-                } else if !maze.is_wall(self.x + 1, self.y) {
+                } else if maze.is_player_passable(self.x + 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Down, Direction::Left) => {
-                if !maze.is_wall(self.x + maze.width - 1, self.y)
+                if maze.is_player_passable(self.x + maze.width - 1, self.y)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Left;
-                } else if !maze.is_wall(self.x, self.y + 1) {
+                } else if maze.is_player_passable(self.x, self.y + 1) {
                     self.progress_to_next_square += offset;
                 }
             }
             // Anti-clockwise turn
             (Direction::Right, Direction::Up) => {
-                if !maze.is_wall(self.x, self.y + maze.height - 1)
+                if maze.is_player_passable(self.x, self.y + maze.height - 1)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Up;
-                } else if !maze.is_wall(self.x + 1, self.y) {
+                } else if maze.is_player_passable(self.x + 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Down, Direction::Right) => {
-                if !maze.is_wall(self.x + 1, self.y)
+                if maze.is_player_passable(self.x + 1, self.y)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Right;
-                } else if !maze.is_wall(self.x, self.y + 1) {
+                } else if maze.is_player_passable(self.x, self.y + 1) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Left, Direction::Down) => {
-                if !maze.is_wall(self.x, self.y + 1)
+                if maze.is_player_passable(self.x, self.y + 1)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Down;
-                } else if !maze.is_wall(self.x + maze.width - 1, self.y) {
+                } else if maze.is_player_passable(self.x + maze.width - 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
             (Direction::Up, Direction::Left) => {
-                if !maze.is_wall(self.x + maze.width - 1, self.y)
+                if maze.is_player_passable(self.x + maze.width - 1, self.y)
                     && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Left;
-                } else if !maze.is_wall(self.x, self.y + maze.height - 1) {
+                } else if maze.is_player_passable(self.x, self.y + maze.height - 1) {
                     self.progress_to_next_square += offset;
                 }
             }
