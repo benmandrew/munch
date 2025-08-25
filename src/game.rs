@@ -30,7 +30,7 @@ impl Game {
         };
         let munch = actor::Actor::new(10, 16);
         let mut ghosts = vec![ghost::Ghost::new(8, 10)];
-        // ghosts[0].generate_path(&maze, (1, 1));
+        ghosts[0].generate_path(&maze, &(1, 1));
         let spin_sleep = spin_sleep::SpinSleeper::new(100_000)
             .with_spin_strategy(spin_sleep::SpinStrategy::YieldThread);
         Game {
@@ -71,7 +71,7 @@ impl EventHandler for Game {
         self.score += dots_eaten as u32 * 10;
 
         for ghost in &mut self.ghosts {
-            ghost.move_along_path(&self.maze, time_delta);
+            ghost.move_along_path(&self.maze, &(self.munch.get_pos()), time_delta);
         }
 
         self.last_game_update = std::time::Instant::now();

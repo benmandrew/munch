@@ -8,6 +8,12 @@ mod ghost;
 mod maze;
 mod window;
 
+fn init_logger() {
+    let mut builder = colog::basic_builder();
+    builder.filter_level(log::LevelFilter::Warn);
+    builder.init();
+}
+
 fn init_context() -> (Context, EventLoop<()>) {
     let resources_dir = std::path::PathBuf::from("./resources");
     let window_mode = WindowMode::default()
@@ -21,7 +27,7 @@ fn init_context() -> (Context, EventLoop<()>) {
 }
 
 fn main() {
-    colog::init();
+    init_logger();
 
     let (mut ctx, event_loop) = init_context();
 

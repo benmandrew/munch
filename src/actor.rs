@@ -1,5 +1,5 @@
 use crate::maze;
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
     Still,
     Up,
@@ -233,6 +233,17 @@ impl Actor {
         self.update_discrete_position(maze)
     }
 
+    pub fn walk_no_collisions(
+        &mut self,
+        direction: Direction,
+        maze: &maze::Maze,
+        time_delta: f32,
+    ) -> bool {
+        self.move_direction = direction;
+        self.progress_to_next_square += 3.0 * time_delta;
+        self.update_discrete_position(maze)
+    }
+
     /// Return a boolean indicating whether the actor changed discrete position
     fn update_discrete_position(&mut self, maze: &maze::Maze) -> bool {
         if self.progress_to_next_square < 1.0 {
@@ -270,6 +281,6 @@ impl Actor {
             }
             _ => {}
         }
-        return true;
+        true
     }
 }

@@ -19,12 +19,10 @@ fn pair_to_direction(from: &(usize, usize), to: &(usize, usize)) -> actor::Direc
         } else {
             actor::Direction::Left
         }
+    } else if dy > 0 {
+        actor::Direction::Down
     } else {
-        if dy > 0 {
-            actor::Direction::Down
-        } else {
-            actor::Direction::Up
-        }
+        actor::Direction::Up
     }
 }
 
@@ -57,10 +55,19 @@ impl Ghost {
         }
     }
 
-    pub fn move_along_path(&mut self, maze: &maze::Maze, time_delta: f32) -> bool {
-        // let direction =
-        //     pair_to_direction(&self.path[self.path_index], &self.path[self.path_index + 1]);
-        // self.actor.walk(direction, maze, time_delta)
-        true
+    pub fn move_along_path(&mut self, maze: &maze::Maze, target: &(usize, usize), time_delta: f32) {
+        if self.path_index >= self.path.len() - 1 || self.path.is_empty() {
+            self.generate_path(maze, target);
+            if self.path.is_empty() {
+                return;
+            }
+        }
+        let direction =
+            pair_to_direction(&self.path[self.path_index], &self.path[self.path_index + 1]);
+        let changed_discrete_position = self.actor.walk_no_collisions(direction, maze, time_delta);
+        if changed_discrete_position {
+            self.path_index += 1;
+            warn!("Last direction was {:?}", direction);
+        }
     }
 }
