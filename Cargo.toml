@@ -9,3 +9,6 @@ ggez = "0.9.3"
 log = "0.4.27"
 pathfinding = "4.14.0"
 spin_sleep = "1.3.2"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"

@@ -56,9 +56,9 @@ impl Ghost {
     }
 
     pub fn move_along_path(&mut self, maze: &maze::Maze, target: &(usize, usize), time_delta: f32) {
-        if self.path_index >= self.path.len() - 1 || self.path.is_empty() {
+        if self.path_index >= self.path.len() - 1 || self.path.len() <= 1 {
             self.generate_path(maze, target);
-            if self.path.is_empty() {
+            if self.path.len() <= 1 {
                 return;
             }
         }
@@ -67,7 +67,77 @@ impl Ghost {
         let changed_discrete_position = self.actor.walk_no_collisions(direction, maze, time_delta);
         if changed_discrete_position {
             self.path_index += 1;
-            warn!("Last direction was {:?}", direction);
         }
+    }
+}
+
+#[cfg(test)]
+fn mark_maze(maze: &maze::Maze, path: Vec<(usize, usize)>) -> String {
+    let maze_str = maze.to_string();
+    let mut result = String::with_capacity(maze_str.len());
+    let mut row_idx = 0;
+    for (i, c) in maze_str.chars().enumerate() {
+        if c == '\n' {
+            row_idx += 1;
+        }
+        if path.contains(&(i % (maze.width + 1), row_idx)) {
+            result.push('!');
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use std::vec;
+
+    use super::*;
+
+    #[test]
+    fn test_ghost_path_through_player_impassable_tile() {
+        let mut ghost = Ghost::new(1, 1);
+        let maze_str = "
+#####
+#   #
+##=##
+#...#
+#####
+";
+        let maze = maze::Maze::from_string(maze_str).unwrap();
+        ghost.generate_path(&maze, &(3, 3));
+        pretty_assertions::assert_eq!(ghost.path.len(), 5);
+        pretty_assertions::assert_eq!(ghost.path, vec![(1, 1), (2, 1), (2, 2), (2, 3), (3, 3)]);
+        let marked = mark_maze(&maze, ghost.path.clone());
+        let expected = "
+#####
+#!! #
+##!##
+#.!!#
+#####
+";
+        pretty_assertions::assert_eq!(marked.trim(), expected.trim());
+    }
+
+    #[test]
+    fn test_ghost_path_wraparound() {
+        let mut ghost = Ghost::new(0, 1);
+        let maze_str = "
+####
+ #  
+####
+";
+        let maze = maze::Maze::from_string(maze_str).unwrap();
+        ghost.generate_path(&maze, &(2, 1));
+        pretty_assertions::assert_eq!(ghost.path.len(), 3);
+        pretty_assertions::assert_eq!(ghost.path, vec![(0, 1), (3, 1), (2, 1)]);
+        let marked = mark_maze(&maze, ghost.path.clone());
+        let expected = "
+####
+!#!!
+####
+";
+        pretty_assertions::assert_eq!(marked.trim(), expected.trim());
     }
 }

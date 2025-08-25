@@ -110,8 +110,13 @@ impl Maze {
         let mut successors = Vec::new();
         let (x, y) = *pos;
         // Check all four directions
-        if self.is_ghost_passable(x, y - 1) {
-            successors.push((x, y - 1));
+        let left = if y > 0 {
+            (x, y - 1)
+        } else {
+            (x, self.height - 1)
+        };
+        if self.is_ghost_passable(left.0, left.1) {
+            successors.push(left);
         }
         if self.is_ghost_passable(x + 1, y) {
             successors.push((x + 1, y));
@@ -119,8 +124,13 @@ impl Maze {
         if self.is_ghost_passable(x, y + 1) {
             successors.push((x, y + 1));
         }
-        if self.is_ghost_passable(x - 1, y) {
-            successors.push((x - 1, y));
+        let up = if x > 0 {
+            (x - 1, y)
+        } else {
+            (self.width - 1, y)
+        };
+        if self.is_ghost_passable(up.0, up.1) {
+            successors.push(up);
         }
         successors
     }
@@ -147,6 +157,27 @@ impl Maze {
             |pos: &(usize, usize)| pos == goal,
         );
         result.map(|(path, _cost)| path)
+    }
+}
+
+impl std::fmt::Display for Maze {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut line = String::with_capacity(self.width);
+        for y in 0..self.height {
+            line.clear();
+            for x in 0..self.width {
+                let tile = self.maze[self.index(x, y)];
+                let c = match tile {
+                    Tile::Wall => '#',
+                    Tile::Path => ' ',
+                    Tile::PlayerImpassable => '=',
+                    Tile::Dot => '.',
+                };
+                line.push(c);
+            }
+            writeln!(f, "{}", line)?;
+        }
+        Ok(())
     }
 }
 
@@ -196,11 +227,11 @@ mod tests {
         let maze = Maze::from_string(maze_str);
         assert!(maze.is_ok());
         let maze = maze.unwrap();
-        assert_eq!(maze.width, 5);
-        assert_eq!(maze.height, 5);
-        assert_eq!(maze.get_tile(0, 0), Some(Tile::Wall));
-        assert_eq!(maze.get_tile(1, 1), Some(Tile::Path));
-        assert_eq!(maze.get_tile(2, 2), Some(Tile::Wall));
+        pretty_assertions::assert_eq!(maze.width, 5);
+        pretty_assertions::assert_eq!(maze.height, 5);
+        pretty_assertions::assert_eq!(maze.get_tile(0, 0), Some(Tile::Wall));
+        pretty_assertions::assert_eq!(maze.get_tile(1, 1), Some(Tile::Path));
+        pretty_assertions::assert_eq!(maze.get_tile(2, 2), Some(Tile::Wall));
     }
 
     #[test]
@@ -212,7 +243,7 @@ mod tests {
 ";
         let maze = Maze::from_string(maze_str);
         assert!(maze.is_err());
-        assert_eq!(
+        pretty_assertions::assert_eq!(
             maze.err().unwrap(),
             "Inconsistent line length: line 1 has length 5, line 2 has length 4"
         );
@@ -229,6 +260,20 @@ mod tests {
 ";
         let maze = Maze::from_string(maze_str);
         assert!(maze.is_err());
-        assert_eq!(maze.err().unwrap(), "Unknown tile character '@' at (1, 4)");
+        pretty_assertions::assert_eq!(maze.err().unwrap(), "Unknown tile character '@' at (1, 4)");
+    }
+
+    #[test]
+    fn test_maze_to_string() {
+        let maze_str = "
+#####
+#   #
+#=#=#
+#...#
+#####
+";
+        let maze = Maze::from_string(maze_str).unwrap();
+        let maze_display = maze.to_string();
+        pretty_assertions::assert_eq!(maze_display.trim(), maze_str.trim());
     }
 }
