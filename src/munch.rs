@@ -15,6 +15,21 @@ pub struct Munch {
     move_direction: Direction,
 }
 
+// Flip our progress to the next square when we reverse direction
+fn flip_progress(progress: f32, offset: f32) -> f32 {
+    1.0 - progress + offset * 2.0
+}
+
+// Have we moved too far to turn a corner we've just passed?
+fn too_far_to_turn(progress: f32) -> bool {
+    progress > 0.1
+}
+
+// Allow for reversing when we're close to a wall
+fn can_reverse(progress: f32, offset: f32) -> bool {
+    progress >= offset * 2.0
+}
+
 impl Munch {
     pub fn new(x: usize, y: usize) -> Self {
         Munch {
@@ -44,61 +59,9 @@ impl Munch {
             self.move_direction = direction;
         }
         match (self.move_direction, direction) {
-            // Moving up
+            // Maintaining direction
             (Direction::Up, Direction::Up) => {
                 if !maze.is_wall(self.x, self.y + maze.height - 1) {
-                    self.progress_to_next_square += offset;
-                }
-            }
-            (Direction::Down, Direction::Up) => {
-                // Allow for reversing direction close to a wall
-                if !maze.is_wall(self.x, self.y + maze.height - 1)
-                    || self.progress_to_next_square >= offset * 2.0
-                {
-                    self.y += 1;
-                    self.progress_to_next_square =
-                        1.0 - self.progress_to_next_square + offset * 2.0;
-                    self.move_direction = Direction::Up;
-                }
-            }
-            (Direction::Right, Direction::Up) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x, self.y + maze.height - 1)
-                    && self.progress_to_next_square < 0.1
-                {
-                    self.progress_to_next_square = 0.0;
-                    self.move_direction = Direction::Up;
-                } else if !maze.is_wall(self.x + 1, self.y) {
-                    self.progress_to_next_square += offset;
-                }
-            }
-            (Direction::Left, Direction::Up) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x, self.y + maze.height - 1)
-                    && self.progress_to_next_square < 0.1
-                {
-                    self.progress_to_next_square = 0.0;
-                    self.move_direction = Direction::Up;
-                } else if !maze.is_wall(self.x - 1, self.y) {
-                    self.progress_to_next_square += offset;
-                }
-            }
-            // Moving right
-            (Direction::Up, Direction::Right) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x + 1, self.y) && self.progress_to_next_square < 0.1 {
-                    self.progress_to_next_square = 0.0;
-                    self.move_direction = Direction::Right;
-                } else if !maze.is_wall(self.x, self.y + maze.height - 1) {
-                    self.progress_to_next_square += offset;
-                }
-            }
-            (Direction::Down, Direction::Right) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x + 1, self.y) && self.progress_to_next_square < 0.1 {
-                    self.progress_to_next_square = 0.0;
-                    self.move_direction = Direction::Right;
-                } else if !maze.is_wall(self.x, self.y + 1) {
                     self.progress_to_next_square += offset;
                 }
             }
@@ -107,66 +70,93 @@ impl Munch {
                     self.progress_to_next_square += offset;
                 }
             }
-            (Direction::Left, Direction::Right) => {
-                // Allow for reversing direction close to a wall
-                if !maze.is_wall(self.x + 1, self.y) || self.progress_to_next_square >= offset * 2.0
-                {
-                    self.x -= 1;
-                    self.progress_to_next_square =
-                        1.0 - self.progress_to_next_square + offset * 2.0;
-                    self.move_direction = Direction::Right;
-                }
-            }
-            // Moving down
-            (Direction::Up, Direction::Down) => {
-                // Allow for reversing direction close to a wall
-                if !maze.is_wall(self.x, self.y + 1) || self.progress_to_next_square >= offset * 2.0
-                {
-                    self.y -= 1;
-                    self.progress_to_next_square =
-                        1.0 - self.progress_to_next_square + offset * 2.0;
-                    self.move_direction = Direction::Down;
-                }
-            }
             (Direction::Down, Direction::Down) => {
                 if !maze.is_wall(self.x, self.y + 1) {
                     self.progress_to_next_square += offset;
                 }
             }
+
+            (Direction::Left, Direction::Left) => {
+                if !maze.is_wall(self.x + maze.width - 1, self.y) {
+                    self.progress_to_next_square += offset;
+                }
+            }
+            // Reversing direction
+            (Direction::Down, Direction::Up) => {
+                if !maze.is_wall(self.x, self.y + maze.height - 1)
+                    || can_reverse(self.progress_to_next_square, offset)
+                {
+                    self.y += 1;
+                    self.progress_to_next_square =
+                        flip_progress(self.progress_to_next_square, offset);
+                    self.move_direction = Direction::Up;
+                }
+            }
+            (Direction::Left, Direction::Right) => {
+                if !maze.is_wall(self.x + 1, self.y)
+                    || can_reverse(self.progress_to_next_square, offset)
+                {
+                    self.x -= 1;
+                    self.progress_to_next_square =
+                        flip_progress(self.progress_to_next_square, offset);
+                    self.move_direction = Direction::Right;
+                }
+            }
+            (Direction::Up, Direction::Down) => {
+                if !maze.is_wall(self.x, self.y + 1)
+                    || can_reverse(self.progress_to_next_square, offset)
+                {
+                    self.y -= 1;
+                    self.progress_to_next_square =
+                        flip_progress(self.progress_to_next_square, offset);
+                    self.move_direction = Direction::Down;
+                }
+            }
+
+            (Direction::Right, Direction::Left) => {
+                if !maze.is_wall(self.x + maze.width - 1, self.y)
+                    || can_reverse(self.progress_to_next_square, offset)
+                {
+                    self.x += 1;
+                    self.progress_to_next_square =
+                        flip_progress(self.progress_to_next_square, offset);
+                    self.move_direction = Direction::Left;
+                }
+            }
+            // Clockwise turn
+            (Direction::Left, Direction::Up) => {
+                if !maze.is_wall(self.x, self.y + maze.height - 1)
+                    && !too_far_to_turn(self.progress_to_next_square)
+                {
+                    self.progress_to_next_square = 0.0;
+                    self.move_direction = Direction::Up;
+                } else if !maze.is_wall(self.x - 1, self.y) {
+                    self.progress_to_next_square += offset;
+                }
+            }
+            (Direction::Up, Direction::Right) => {
+                if !maze.is_wall(self.x + 1, self.y)
+                    && !too_far_to_turn(self.progress_to_next_square)
+                {
+                    self.progress_to_next_square = 0.0;
+                    self.move_direction = Direction::Right;
+                } else if !maze.is_wall(self.x, self.y + maze.height - 1) {
+                    self.progress_to_next_square += offset;
+                }
+            }
             (Direction::Right, Direction::Down) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x, self.y + 1) && self.progress_to_next_square < 0.1 {
+                if !maze.is_wall(self.x, self.y + 1)
+                    && !too_far_to_turn(self.progress_to_next_square)
+                {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Down;
                 } else if !maze.is_wall(self.x + 1, self.y) {
                     self.progress_to_next_square += offset;
                 }
             }
-            (Direction::Left, Direction::Down) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x, self.y + 1) && self.progress_to_next_square < 0.1 {
-                    self.progress_to_next_square = 0.0;
-                    self.move_direction = Direction::Down;
-                } else if !maze.is_wall(self.x + maze.width - 1, self.y) {
-                    self.progress_to_next_square += offset;
-                }
-            }
-            // Moving left
-            (Direction::Up, Direction::Left) => {
-                // Prevent jumping around corners we've already passed
-                if !maze.is_wall(self.x + maze.width - 1, self.y)
-                    && self.progress_to_next_square < 0.1
-                {
-                    self.progress_to_next_square = 0.0;
-                    self.move_direction = Direction::Left;
-                } else if !maze.is_wall(self.x, self.y + maze.height - 1) {
-                    self.progress_to_next_square += offset;
-                }
-            }
             (Direction::Down, Direction::Left) => {
-                // Prevent jumping around corners we've already passed
                 if !maze.is_wall(self.x + maze.width - 1, self.y)
-                    && self.progress_to_next_square < 0.1
+                    && !too_far_to_turn(self.progress_to_next_square)
                 {
                     self.progress_to_next_square = 0.0;
                     self.move_direction = Direction::Left;
@@ -174,19 +164,44 @@ impl Munch {
                     self.progress_to_next_square += offset;
                 }
             }
-            (Direction::Right, Direction::Left) => {
-                // Allow for reversing direction close to a wall
-                if !maze.is_wall(self.x + maze.width - 1, self.y)
-                    || self.progress_to_next_square >= offset * 2.0
+            // Anti-clockwise turn
+            (Direction::Right, Direction::Up) => {
+                if !maze.is_wall(self.x, self.y + maze.height - 1)
+                    && !too_far_to_turn(self.progress_to_next_square)
                 {
-                    self.x += 1;
-                    self.progress_to_next_square =
-                        1.0 - self.progress_to_next_square + offset * 2.0;
-                    self.move_direction = Direction::Left;
+                    self.progress_to_next_square = 0.0;
+                    self.move_direction = Direction::Up;
+                } else if !maze.is_wall(self.x + 1, self.y) {
+                    self.progress_to_next_square += offset;
                 }
             }
-            (Direction::Left, Direction::Left) => {
-                if !maze.is_wall(self.x + maze.width - 1, self.y) {
+            (Direction::Down, Direction::Right) => {
+                if !maze.is_wall(self.x + 1, self.y)
+                    && !too_far_to_turn(self.progress_to_next_square)
+                {
+                    self.progress_to_next_square = 0.0;
+                    self.move_direction = Direction::Right;
+                } else if !maze.is_wall(self.x, self.y + 1) {
+                    self.progress_to_next_square += offset;
+                }
+            }
+            (Direction::Left, Direction::Down) => {
+                if !maze.is_wall(self.x, self.y + 1)
+                    && !too_far_to_turn(self.progress_to_next_square)
+                {
+                    self.progress_to_next_square = 0.0;
+                    self.move_direction = Direction::Down;
+                } else if !maze.is_wall(self.x + maze.width - 1, self.y) {
+                    self.progress_to_next_square += offset;
+                }
+            }
+            (Direction::Up, Direction::Left) => {
+                if !maze.is_wall(self.x + maze.width - 1, self.y)
+                    && !too_far_to_turn(self.progress_to_next_square)
+                {
+                    self.progress_to_next_square = 0.0;
+                    self.move_direction = Direction::Left;
+                } else if !maze.is_wall(self.x, self.y + maze.height - 1) {
                     self.progress_to_next_square += offset;
                 }
             }
