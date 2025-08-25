@@ -4,6 +4,7 @@ use ggez::{Context, ContextBuilder};
 
 mod game;
 mod maze;
+mod munch;
 mod window;
 
 fn init_context() -> (Context, EventLoop<()>) {

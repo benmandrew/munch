@@ -4,17 +4,16 @@ use ggez::input::keyboard::{KeyCode, KeyInput};
 use ggez::{Context, GameResult};
 
 use crate::maze;
+use crate::munch;
 use crate::window;
-
-struct Munch {
-    x: usize,
-    y: usize,
-}
 
 pub struct Game {
     window: window::Window,
     maze: maze::Maze,
-    munch: Munch,
+    munch: munch::Munch,
+    spin_sleep: spin_sleep::SpinSleeper,
+    last_game_update: std::time::Instant,
+    moving_direction: munch::Direction,
 }
 
 impl Game {
@@ -27,11 +26,16 @@ impl Game {
                 std::process::exit(1);
             }
         };
-        let munch = Munch { x: 1, y: 1 };
+        let munch = munch::Munch::new(1, 1);
+        let spin_sleep = spin_sleep::SpinSleeper::new(100_000)
+            .with_spin_strategy(spin_sleep::SpinStrategy::YieldThread);
         Game {
             window,
             maze,
             munch,
+            spin_sleep,
+            last_game_update: std::time::Instant::now(),
+            moving_direction: munch::Direction::Still,
         }
     }
 }
@@ -39,48 +43,10 @@ impl Game {
 impl Game {
     fn handle_movement(&mut self, keycode: KeyCode) {
         match keycode {
-            KeyCode::Up => {
-                if !self
-                    .maze
-                    .is_wall(self.munch.x, self.munch.y + self.maze.height - 1)
-                {
-                    if self.munch.y == 0 {
-                        self.munch.y = self.maze.height - 1;
-                    } else {
-                        self.munch.y -= 1;
-                    }
-                }
-            }
-            KeyCode::Down => {
-                if !self.maze.is_wall(self.munch.x, self.munch.y + 1) {
-                    if self.munch.y == self.maze.height - 1 {
-                        self.munch.y = 0;
-                    } else {
-                        self.munch.y += 1;
-                    }
-                }
-            }
-            KeyCode::Left => {
-                if !self
-                    .maze
-                    .is_wall(self.munch.x + self.maze.width - 1, self.munch.y)
-                {
-                    if self.munch.x == 0 {
-                        self.munch.x = self.maze.width - 1;
-                    } else {
-                        self.munch.x -= 1;
-                    }
-                }
-            }
-            KeyCode::Right => {
-                if !self.maze.is_wall(self.munch.x + 1, self.munch.y) {
-                    if self.munch.x == self.maze.width - 1 {
-                        self.munch.x = 0;
-                    } else {
-                        self.munch.x += 1;
-                    }
-                }
-            }
+            KeyCode::Up => self.moving_direction = munch::Direction::Up,
+            KeyCode::Down => self.moving_direction = munch::Direction::Down,
+            KeyCode::Left => self.moving_direction = munch::Direction::Left,
+            KeyCode::Right => self.moving_direction = munch::Direction::Right,
             _ => {}
         }
     }
@@ -88,7 +54,12 @@ impl Game {
 
 impl EventHandler for Game {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        // Update code here...
+        self.spin_sleep
+            .sleep_until(self.last_game_update + std::time::Duration::from_millis(16));
+
+        self.munch.walk(self.moving_direction, &self.maze);
+
+        self.last_game_update = std::time::Instant::now();
         Ok(())
     }
 
