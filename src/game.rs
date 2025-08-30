@@ -3,57 +3,28 @@ use ggez::event::EventHandler;
 use ggez::input::keyboard::{KeyCode, KeyInput};
 use ggez::{Context, GameResult};
 
-use crate::{actor, ghost, maze, window};
+use crate::{game_logic, window};
 
 const FRAME_TIME: f32 = 1000.0 / 120.0;
 
 pub struct Game {
     window: window::Window,
-    maze: maze::Maze,
-    munch: actor::Actor,
-    ghosts: Vec<ghost::Ghost>,
     spin_sleep: spin_sleep::SpinSleeper,
     last_game_update: std::time::Instant,
-    move_direction: actor::Direction,
-    score: u32,
+    game_logic: game_logic::GameLogic,
 }
 
 impl Game {
     pub fn new(ctx: &mut Context) -> Game {
         let window = window::Window::new(ctx);
-        let maze = match maze::Maze::from_file("resources/maze.txt") {
-            Ok(maze) => maze,
-            Err(e) => {
-                eprintln!("Error loading maze: {}", e);
-                std::process::exit(1);
-            }
-        };
-        let munch = actor::Actor::new(10, 16);
-        let mut ghosts = vec![ghost::Ghost::new(8, 10)];
-        ghosts[0].generate_path(&maze, &(1, 1));
+        let game_logic = game_logic::GameLogic::new(None);
         let spin_sleep = spin_sleep::SpinSleeper::new(100_000)
             .with_spin_strategy(spin_sleep::SpinStrategy::YieldThread);
         Game {
             window,
-            maze,
-            munch,
-            ghosts,
             spin_sleep,
             last_game_update: std::time::Instant::now(),
-            move_direction: actor::Direction::Still,
-            score: 0,
-        }
-    }
-}
-
-impl Game {
-    fn handle_movement(&mut self, keycode: KeyCode) {
-        match keycode {
-            KeyCode::Up => self.move_direction = actor::Direction::Up,
-            KeyCode::Down => self.move_direction = actor::Direction::Down,
-            KeyCode::Left => self.move_direction = actor::Direction::Left,
-            KeyCode::Right => self.move_direction = actor::Direction::Right,
-            _ => {}
+            game_logic,
         }
     }
 }
@@ -63,19 +34,10 @@ impl EventHandler for Game {
         self.spin_sleep.sleep_until(
             self.last_game_update + std::time::Duration::from_millis(FRAME_TIME as u64),
         );
-
         let time_delta = self.last_game_update.elapsed().as_millis() as f32 / 1000.0;
-
-        self.munch.walk(self.move_direction, &self.maze, time_delta);
-        let dots_eaten = self.maze.eat_dots(&self.munch);
-        self.score += dots_eaten as u32 * 10;
-
-        for ghost in &mut self.ghosts {
-            ghost.move_along_path(&self.maze, &(self.munch.get_pos()), time_delta);
-        }
-
+        let result = self.game_logic.update(time_delta);
         self.last_game_update = std::time::Instant::now();
-        Ok(())
+        result
     }
 
     fn key_down_event(
@@ -88,7 +50,7 @@ impl EventHandler for Game {
             Some(key) => key,
             None => return Ok(()),
         };
-        self.handle_movement(keycode);
+        self.game_logic.handle_movement(keycode);
         match keycode {
             KeyCode::Escape | KeyCode::Q => {
                 ctx.request_quit();
@@ -99,8 +61,13 @@ impl EventHandler for Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.window
-            .draw(ctx, &self.maze, &self.munch, &self.ghosts, self.score)
+        self.window.draw(
+            ctx,
+            &self.game_logic.maze,
+            &self.game_logic.munch,
+            &self.game_logic.ghosts,
+            self.game_logic.score,
+        )
     }
 
     fn resize_event(

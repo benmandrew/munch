@@ -4,6 +4,7 @@ use ggez::{Context, ContextBuilder};
 
 mod actor;
 mod game;
+mod game_logic;
 mod ghost;
 mod maze;
 mod window;
@@ -20,7 +21,7 @@ fn init_context() -> (Context, EventLoop<()>) {
         .dimensions(1600.0, 1200.0)
         .resizable(true);
     let window_setup = conf::WindowSetup::default().vsync(false).title("Munch");
-    ContextBuilder::new("my_game", "Cool Game Author")
+    ContextBuilder::new("Munch", "Ben M. Andrew")
         .window_mode(window_mode)
         .window_setup(window_setup)
         .add_resource_path(resources_dir)
@@ -30,10 +31,7 @@ fn init_context() -> (Context, EventLoop<()>) {
 
 fn main() {
     init_logger();
-
     let (mut ctx, event_loop) = init_context();
-
     let game = game::Game::new(&mut ctx);
-
     event::run(ctx, event_loop, game);
 }

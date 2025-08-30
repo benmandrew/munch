@@ -59,6 +59,15 @@ impl Maze {
         })
     }
 
+    #[cfg(test)]
+    pub fn empty() -> Self {
+        Maze {
+            width: 0,
+            height: 0,
+            maze: Vec::new(),
+        }
+    }
+
     pub fn from_file(path: &str) -> Result<Self, String> {
         match std::fs::read_to_string(path) {
             Ok(contents) => Self::from_string(&contents),

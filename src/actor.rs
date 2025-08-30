@@ -44,6 +44,11 @@ impl Actor {
         (self.x, self.y)
     }
 
+    pub fn set_pos(&mut self, x: usize, y: usize) {
+        self.x = x;
+        self.y = y;
+    }
+
     pub fn get_draw_pos(&self) -> (f32, f32) {
         let x = self.x as f32;
         let y = self.y as f32;
