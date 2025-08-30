@@ -12,7 +12,7 @@ pub struct Actor {
     pub x: usize,
     pub y: usize,
     progress_to_next_square: f32,
-    move_direction: Direction,
+    pub move_direction: Direction,
 }
 
 // Flip our progress to the next square when we reverse direction

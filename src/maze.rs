@@ -18,6 +18,11 @@ pub fn ghost_passable(tile: &Tile) -> bool {
     matches!(tile, Tile::Path | Tile::PlayerImpassable | Tile::Dot)
 }
 
+/// Check if two positions are equal considering the maze wrapping
+fn pos_mod_eq(a: &(usize, usize), b: &(usize, usize), width: usize, height: usize) -> bool {
+    (a.0 % width) == (b.0 % width) && (a.1 % height) == (b.1 % height)
+}
+
 #[derive(Debug)]
 pub struct Maze {
     pub width: usize,
@@ -62,7 +67,7 @@ impl Maze {
         )
     }
 
-    fn is_ghost_passable(&self, x: usize, y: usize) -> bool {
+    pub fn is_ghost_passable(&self, x: usize, y: usize) -> bool {
         ghost_passable(
             self.maze
                 .get(self.index(x % self.width, y % self.height))
@@ -86,6 +91,8 @@ impl Maze {
     fn ghost_successor_tiles(&self, pos: &(usize, usize)) -> Vec<(usize, usize)> {
         let mut successors = Vec::new();
         let (x, y) = *pos;
+        let x = x % self.width;
+        let y = y % self.height;
         // Check all four directions
         let left = if y > 0 {
             (x, y - 1)
@@ -125,13 +132,14 @@ impl Maze {
         goal: &(usize, usize),
     ) -> Option<Vec<(usize, usize)>> {
         let heuristic = |&(x, y): &(usize, usize)| {
-            ((goal.0 as isize - x as isize).abs() + (goal.1 as isize - y as isize).abs()) as u32
+            (((goal.0 % self.width) as isize - x as isize).abs()
+                + ((goal.1 % self.height) as isize - y as isize).abs()) as u32
         };
         let result = astar::astar(
             start,
             |pos: &(usize, usize)| self.ghost_successors_with_cost(pos),
             heuristic,
-            |pos: &(usize, usize)| pos == goal,
+            |pos: &(usize, usize)| pos_mod_eq(pos, goal, self.width, self.height),
         );
         result.map(|(path, _cost)| path)
     }

@@ -2,6 +2,7 @@ use ggez::graphics::{self, Canvas, Color, Image, Text};
 use ggez::{Context, GameResult};
 
 use ggez::glam;
+use log::error;
 
 use crate::{actor, ghost, maze};
 
@@ -20,7 +21,7 @@ impl Window {
         let image = match Image::from_path(ctx, "/pacman.bmp") {
             Ok(img) => img,
             Err(e) => {
-                eprintln!("Failed to load image: {}", e);
+                error!("Failed to load image: {}", e);
                 std::process::exit(1);
             }
         };

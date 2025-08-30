@@ -25,7 +25,7 @@ impl GameLogic {
             ghosts: config
                 .ghosts_pos
                 .iter()
-                .map(|&(x, y)| ghost::Ghost::new(x, y))
+                .map(|&(x, y, personality)| ghost::Ghost::new(x, y, personality))
                 .collect(),
             move_direction: actor::Direction::Still,
             score: 0,
@@ -59,7 +59,7 @@ impl GameLogic {
         let dots_eaten = self.maze.eat_dots(&self.munch);
         self.score += dots_eaten as u32 * 10;
         for ghost in &mut self.ghosts {
-            ghost.move_along_path(&self.maze, &(self.munch.get_pos()), time_delta);
+            ghost.move_along_path(&self.maze, &self.munch, time_delta);
         }
         if let Some(_index) = self.munch_ghost_collision() {
             panic!("Munch collided with a ghost!");
@@ -76,7 +76,8 @@ mod tests {
     fn test_munch_ghost_collisions() {
         let mut game = GameLogic::new(config::Config::empty());
         game.munch.set_pos(5, 5);
-        game.ghosts.push(ghost::Ghost::new(5, 5));
+        game.ghosts
+            .push(ghost::Ghost::new(5, 5, ghost::Personality::Blinky));
         assert_eq!(game.munch_ghost_collision(), Some(0));
     }
 }

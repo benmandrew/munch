@@ -1,9 +1,19 @@
-use crate::maze;
+use crate::{ghost, maze};
 
 pub struct Config {
     pub maze: maze::Maze,
     pub player_pos: Option<(usize, usize)>,
-    pub ghosts_pos: Vec<(usize, usize)>,
+    pub ghosts_pos: Vec<(usize, usize, ghost::Personality)>,
+}
+
+fn match_maze_char(c: char) -> Result<maze::Tile, String> {
+    match c {
+        '#' => Ok(maze::Tile::Wall),
+        ' ' | 'M' | 'B' | 'P' | 'I' | 'C' => Ok(maze::Tile::Path),
+        '=' => Ok(maze::Tile::PlayerImpassable),
+        '.' => Ok(maze::Tile::Dot),
+        _ => Err(format!("Unknown tile character '{}'", c)),
+    }
 }
 
 impl Config {
@@ -31,23 +41,28 @@ impl Config {
                 ));
             }
             for (x, c) in line.chars().enumerate() {
+                match match_maze_char(c) {
+                    Ok(tile) => maze.push(tile),
+                    Err(e) => return Err(format!("Error at ({}, {}): {}", x, y, e)),
+                };
                 match c {
-                    '#' => maze.push(maze::Tile::Wall),
-                    ' ' => maze.push(maze::Tile::Path),
-                    '=' => maze.push(maze::Tile::PlayerImpassable),
-                    '.' => maze.push(maze::Tile::Dot),
-                    'P' => {
+                    'M' => {
                         assert!(player_pos.is_none(), "Multiple player positions found");
                         player_pos = Some((x, y));
-                        maze.push(maze::Tile::Path)
                     }
-                    'G' => {
-                        ghosts_pos.push((x, y));
-                        maze.push(maze::Tile::Path)
+                    'B' => {
+                        ghosts_pos.push((x, y, ghost::Personality::Blinky));
                     }
-                    _ => {
-                        return Err(format!("Unknown tile character '{}' at ({}, {})", c, x, y));
+                    'I' => {
+                        ghosts_pos.push((x, y, ghost::Personality::Inky));
                     }
+                    'P' => {
+                        ghosts_pos.push((x, y, ghost::Personality::Pinky));
+                    }
+                    'C' => {
+                        ghosts_pos.push((x, y, ghost::Personality::Clyde));
+                    }
+                    _ => {}
                 }
             }
         }
@@ -70,21 +85,22 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+    use crate::ghost::Personality;
+
     use super::*;
 
     #[test]
     fn test_maze_from_string() {
         let maze_str = "
 #####
-#GP #
+#PM #
 #=#=#
-#...#
+#.BI#
 #####
 ";
         let config_result = Config::from_string(maze_str);
         assert!(config_result.is_ok());
         let config = config_result.unwrap();
-
         pretty_assertions::assert_eq!(config.maze.width, 5);
         pretty_assertions::assert_eq!(config.maze.height, 5);
         pretty_assertions::assert_eq!(config.maze.get_tile(0, 0), Some(maze::Tile::Wall));
@@ -95,7 +111,14 @@ mod tests {
             Some(maze::Tile::PlayerImpassable)
         );
         pretty_assertions::assert_eq!(config.player_pos, Some((2, 1)));
-        pretty_assertions::assert_eq!(config.ghosts_pos, vec![(1, 1)]);
+        pretty_assertions::assert_eq!(
+            config.ghosts_pos,
+            vec![
+                (1, 1, Personality::Pinky),
+                (2, 3, Personality::Blinky),
+                (3, 3, Personality::Inky)
+            ]
+        );
     }
 
     #[test]
@@ -126,7 +149,7 @@ mod tests {
         assert!(config.is_err());
         pretty_assertions::assert_eq!(
             config.err().unwrap(),
-            "Unknown tile character '@' at (1, 4)"
+            "Error at (1, 4): Unknown tile character '@'"
         );
     }
 }

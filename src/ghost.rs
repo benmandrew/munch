@@ -26,22 +26,42 @@ fn pair_to_direction(from: &(usize, usize), to: &(usize, usize)) -> actor::Direc
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Personality {
+    Blinky,
+    Pinky,
+    Inky,
+    Clyde,
+}
+
 pub struct Ghost {
     pub actor: actor::Actor,
     path: Vec<(usize, usize)>,
     path_index: usize,
+    personality: Personality,
 }
 
 impl Ghost {
-    pub fn new(x: usize, y: usize) -> Ghost {
+    pub fn new(x: usize, y: usize, personality: Personality) -> Ghost {
         Ghost {
             actor: actor::Actor::new(x, y),
             path: Vec::new(),
             path_index: 0,
+            personality,
         }
     }
 
-    pub fn generate_path(&mut self, maze: &maze::Maze, target: &(usize, usize)) {
+    pub fn generate_path(&mut self, maze: &maze::Maze, munch: &actor::Actor) {
+        let target = match self.personality {
+            Personality::Blinky => get_blinky_target(munch),
+            Personality::Pinky => get_pinky_target(munch, maze),
+            Personality::Inky => get_inky_target(munch),
+            Personality::Clyde => get_clyde_target(munch),
+        };
+        self.generate_path_to_target(maze, &target);
+    }
+
+    fn generate_path_to_target(&mut self, maze: &maze::Maze, target: &(usize, usize)) {
         let ghost_pos = self.actor.get_pos();
         match maze.shortest_path(&ghost_pos, target) {
             Some(path) => {
@@ -55,9 +75,9 @@ impl Ghost {
         }
     }
 
-    pub fn move_along_path(&mut self, maze: &maze::Maze, target: &(usize, usize), time_delta: f32) {
+    pub fn move_along_path(&mut self, maze: &maze::Maze, munch: &actor::Actor, time_delta: f32) {
         if self.path_index + 1 >= self.path.len() || self.path.len() <= 1 {
-            self.generate_path(maze, target);
+            self.generate_path(maze, munch);
             if self.path.len() <= 1 {
                 return;
             }
@@ -66,9 +86,60 @@ impl Ghost {
             pair_to_direction(&self.path[self.path_index], &self.path[self.path_index + 1]);
         let changed_discrete_position = self.actor.walk_no_collisions(direction, maze, time_delta);
         if changed_discrete_position {
-            self.path_index += 1;
+            // self.path_index += 1;
+            self.generate_path(maze, munch);
         }
     }
+}
+
+fn get_blinky_target(munch: &actor::Actor) -> (usize, usize) {
+    munch.get_pos()
+}
+
+const PINKY_MAX_DIST_AHEAD: usize = 4;
+
+fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
+    let (x, y) = munch.get_pos();
+    for i in (1..PINKY_MAX_DIST_AHEAD + 1).rev() {
+        match munch.move_direction {
+            actor::Direction::Up => {
+                if y < i {
+                    continue;
+                }
+                if maze.is_ghost_passable(x, y - i) {
+                    return (x, y - i);
+                }
+            }
+            actor::Direction::Down => {
+                if maze.is_ghost_passable(x, y + i) {
+                    return (x, y + i);
+                }
+            }
+            actor::Direction::Left => {
+                if x < i {
+                    continue;
+                }
+                if maze.is_ghost_passable(x - i, y) {
+                    return (x - i, y);
+                }
+            }
+            actor::Direction::Right => {
+                if maze.is_ghost_passable(x + i, y) {
+                    return (x + i, y);
+                }
+            }
+            _ => {}
+        }
+    }
+    (x, y)
+}
+
+fn get_inky_target(munch: &actor::Actor) -> (usize, usize) {
+    munch.get_pos()
+}
+
+fn get_clyde_target(munch: &actor::Actor) -> (usize, usize) {
+    munch.get_pos()
 }
 
 #[cfg(test)]
@@ -100,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_ghost_path_through_player_impassable_tile() {
-        let mut ghost = Ghost::new(1, 1);
+        let mut ghost = Ghost::new(1, 1, Personality::Blinky);
         let maze_str = "
 #####
 #   #
@@ -109,7 +180,7 @@ mod tests {
 #####
 ";
         let maze = config::Config::from_string(maze_str).unwrap().maze;
-        ghost.generate_path(&maze, &(3, 3));
+        ghost.generate_path_to_target(&maze, &(3, 3));
         pretty_assertions::assert_eq!(ghost.path.len(), 5);
         pretty_assertions::assert_eq!(ghost.path, vec![(1, 1), (2, 1), (2, 2), (2, 3), (3, 3)]);
         let marked = mark_maze(&maze, ghost.path.clone());
@@ -125,14 +196,14 @@ mod tests {
 
     #[test]
     fn test_ghost_path_wraparound() {
-        let mut ghost = Ghost::new(0, 1);
+        let mut ghost = Ghost::new(0, 1, Personality::Inky);
         let maze_str = "
 ####
  #  
 ####
 ";
         let maze = config::Config::from_string(maze_str).unwrap().maze;
-        ghost.generate_path(&maze, &(2, 1));
+        ghost.generate_path_to_target(&maze, &(2, 1));
         pretty_assertions::assert_eq!(ghost.path.len(), 3);
         pretty_assertions::assert_eq!(ghost.path, vec![(0, 1), (3, 1), (2, 1)]);
         let marked = mark_maze(&maze, ghost.path.clone());
