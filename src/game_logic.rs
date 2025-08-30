@@ -1,3 +1,5 @@
+use core::panic;
+
 use ggez::input::keyboard::KeyCode;
 use ggez::GameResult;
 
@@ -58,6 +60,9 @@ impl GameLogic {
         self.score += dots_eaten as u32 * 10;
         for ghost in &mut self.ghosts {
             ghost.move_along_path(&self.maze, &(self.munch.get_pos()), time_delta);
+        }
+        if let Some(_index) = self.munch_ghost_collision() {
+            panic!("Munch collided with a ghost!");
         }
         Ok(())
     }
