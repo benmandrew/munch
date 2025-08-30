@@ -44,6 +44,7 @@ impl Actor {
         (self.x, self.y)
     }
 
+    #[cfg(test)]
     pub fn set_pos(&mut self, x: usize, y: usize) {
         self.x = x;
         self.y = y;

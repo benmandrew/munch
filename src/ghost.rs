@@ -56,7 +56,7 @@ impl Ghost {
     }
 
     pub fn move_along_path(&mut self, maze: &maze::Maze, target: &(usize, usize), time_delta: f32) {
-        if self.path_index >= self.path.len() - 1 || self.path.len() <= 1 {
+        if self.path_index + 1 >= self.path.len() || self.path.len() <= 1 {
             self.generate_path(maze, target);
             if self.path.len() <= 1 {
                 return;
@@ -70,6 +70,9 @@ impl Ghost {
         }
     }
 }
+
+#[cfg(test)]
+use crate::config;
 
 #[cfg(test)]
 fn mark_maze(maze: &maze::Maze, path: Vec<(usize, usize)>) -> String {
@@ -105,7 +108,7 @@ mod tests {
 #...#
 #####
 ";
-        let maze = maze::Maze::from_string(maze_str).unwrap();
+        let maze = config::Config::from_string(maze_str).unwrap().maze;
         ghost.generate_path(&maze, &(3, 3));
         pretty_assertions::assert_eq!(ghost.path.len(), 5);
         pretty_assertions::assert_eq!(ghost.path, vec![(1, 1), (2, 1), (2, 2), (2, 3), (3, 3)]);
@@ -128,7 +131,7 @@ mod tests {
  #  
 ####
 ";
-        let maze = maze::Maze::from_string(maze_str).unwrap();
+        let maze = config::Config::from_string(maze_str).unwrap().maze;
         ghost.generate_path(&maze, &(2, 1));
         pretty_assertions::assert_eq!(ghost.path.len(), 3);
         pretty_assertions::assert_eq!(ghost.path, vec![(0, 1), (3, 1), (2, 1)]);

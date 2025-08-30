@@ -3,7 +3,7 @@ use ggez::event::EventHandler;
 use ggez::input::keyboard::{KeyCode, KeyInput};
 use ggez::{Context, GameResult};
 
-use crate::{game_logic, window};
+use crate::{config, game_logic, window};
 
 const FRAME_TIME: f32 = 1000.0 / 120.0;
 
@@ -15,9 +15,9 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(ctx: &mut Context) -> Game {
+    pub fn new(ctx: &mut Context, config: config::Config) -> Game {
         let window = window::Window::new(ctx);
-        let game_logic = game_logic::GameLogic::new(None);
+        let game_logic = game_logic::GameLogic::new(config);
         let spin_sleep = spin_sleep::SpinSleeper::new(100_000)
             .with_spin_strategy(spin_sleep::SpinStrategy::YieldThread);
         Game {

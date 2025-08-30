@@ -26,37 +26,12 @@ pub struct Maze {
 }
 
 impl Maze {
-    pub fn from_string(s: &str) -> Result<Self, String> {
-        let lines: Vec<&str> = s.trim().split('\n').collect();
-        let width = lines[0].len();
-        let height = lines.len();
-        let mut maze = Vec::with_capacity(width * height);
-        for (y, line) in lines.iter().enumerate() {
-            if width != line.len() {
-                return Err(format!(
-                    "Inconsistent line length: line 1 has length {}, line {} has length {}",
-                    width,
-                    y + 1,
-                    line.len()
-                ));
-            }
-            for (x, c) in line.chars().enumerate() {
-                match c {
-                    '#' => maze.push(Tile::Wall),
-                    ' ' => maze.push(Tile::Path),
-                    '=' => maze.push(Tile::PlayerImpassable),
-                    '.' => maze.push(Tile::Dot),
-                    _ => {
-                        return Err(format!("Unknown tile character '{}' at ({}, {})", c, x, y));
-                    }
-                }
-            }
-        }
-        Ok(Maze {
+    pub fn new(width: usize, height: usize, maze: Vec<Tile>) -> Self {
+        Maze {
             width,
             height,
             maze,
-        })
+        }
     }
 
     #[cfg(test)]
@@ -65,13 +40,6 @@ impl Maze {
             width: 0,
             height: 0,
             maze: Vec::new(),
-        }
-    }
-
-    pub fn from_file(path: &str) -> Result<Self, String> {
-        match std::fs::read_to_string(path) {
-            Ok(contents) => Self::from_string(&contents),
-            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -211,7 +179,7 @@ impl<'a> Iterator for MazeIterator<'a> {
 
 #[cfg(test)]
 impl Maze {
-    fn get_tile(&self, x: usize, y: usize) -> Option<Tile> {
+    pub fn get_tile(&self, x: usize, y: usize) -> Option<Tile> {
         if x < self.width && y < self.height {
             Some(self.maze[y * self.width + x])
         } else {
@@ -221,56 +189,11 @@ impl Maze {
 }
 
 #[cfg(test)]
+use crate::config;
+
+#[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_maze_from_string() {
-        let maze_str = "
-#####
-#   #
-#=#=#
-#...#
-#####
-";
-        let maze = Maze::from_string(maze_str);
-        assert!(maze.is_ok());
-        let maze = maze.unwrap();
-        pretty_assertions::assert_eq!(maze.width, 5);
-        pretty_assertions::assert_eq!(maze.height, 5);
-        pretty_assertions::assert_eq!(maze.get_tile(0, 0), Some(Tile::Wall));
-        pretty_assertions::assert_eq!(maze.get_tile(1, 1), Some(Tile::Path));
-        pretty_assertions::assert_eq!(maze.get_tile(2, 2), Some(Tile::Wall));
-    }
-
-    #[test]
-    fn test_maze_invalid_size() {
-        let maze_str = "
-#####
-####
-# # #
-";
-        let maze = Maze::from_string(maze_str);
-        assert!(maze.is_err());
-        pretty_assertions::assert_eq!(
-            maze.err().unwrap(),
-            "Inconsistent line length: line 1 has length 5, line 2 has length 4"
-        );
-    }
-
-    #[test]
-    fn test_maze_invalid_character() {
-        let maze_str = "
-#####
-#   #
-# # #
-#   #
-#@###
-";
-        let maze = Maze::from_string(maze_str);
-        assert!(maze.is_err());
-        pretty_assertions::assert_eq!(maze.err().unwrap(), "Unknown tile character '@' at (1, 4)");
-    }
 
     #[test]
     fn test_maze_to_string() {
@@ -281,7 +204,7 @@ mod tests {
 #...#
 #####
 ";
-        let maze = Maze::from_string(maze_str).unwrap();
+        let maze = config::Config::from_string(maze_str).unwrap().maze;
         let maze_display = maze.to_string();
         pretty_assertions::assert_eq!(maze_display.trim(), maze_str.trim());
     }

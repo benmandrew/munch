@@ -3,6 +3,7 @@ use ggez::event::{self, EventLoop};
 use ggez::{Context, ContextBuilder};
 
 mod actor;
+mod config;
 mod game;
 mod game_logic;
 mod ghost;
@@ -29,9 +30,20 @@ fn init_context() -> (Context, EventLoop<()>) {
         .expect("Could not create ggez context")
 }
 
+fn init_config() -> config::Config {
+    match config::Config::from_file("resources/maze.txt") {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("Error loading config: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
 fn main() {
     init_logger();
     let (mut ctx, event_loop) = init_context();
-    let game = game::Game::new(&mut ctx);
+    let config = init_config();
+    let game = game::Game::new(&mut ctx, config);
     event::run(ctx, event_loop, game);
 }

@@ -1,7 +1,7 @@
 use ggez::input::keyboard::KeyCode;
 use ggez::GameResult;
 
-use crate::{actor, ghost, maze};
+use crate::{actor, config, ghost, maze};
 
 pub struct GameLogic {
     pub maze: maze::Maze,
@@ -11,29 +11,20 @@ pub struct GameLogic {
     pub score: u32,
 }
 
-/// Represents either a maze or a path to a file containing a maze.
-pub enum MazeOrPath {
-    Maze(maze::Maze),
-    Path(String),
-}
-
-const DEFAULT_MAZE_PATH: &str = "resources/maze.txt";
-
 impl GameLogic {
-    /// Creates a new GameLogic instance.
-    /// If no maze or path is provided, the default maze will be loaded.
-    pub fn new(maze_or_path: Option<MazeOrPath>) -> GameLogic {
-        let maze = match maze_or_path {
-            Some(MazeOrPath::Maze(m)) => m,
-            Some(MazeOrPath::Path(path)) => get_maze_from_file(&path),
-            None => get_maze_from_file(DEFAULT_MAZE_PATH),
+    pub fn new(config: config::Config) -> GameLogic {
+        let munch = match config.player_pos {
+            Some((x, y)) => actor::Actor::new(x, y),
+            None => actor::Actor::new(0, 0),
         };
-        let munch = actor::Actor::new(10, 16);
-        let ghosts: Vec<ghost::Ghost> = vec![];
         GameLogic {
-            maze,
+            maze: config.maze,
             munch,
-            ghosts,
+            ghosts: config
+                .ghosts_pos
+                .iter()
+                .map(|&(x, y)| ghost::Ghost::new(x, y))
+                .collect(),
             move_direction: actor::Direction::Still,
             score: 0,
         }
@@ -72,28 +63,13 @@ impl GameLogic {
     }
 }
 
-fn get_maze_from_file(path: &str) -> maze::Maze {
-    match maze::Maze::from_file(path) {
-        Ok(maze) => maze,
-        Err(e) => {
-            eprintln!("Error loading maze: {}", e);
-            std::process::exit(1);
-        }
-    }
-}
-
-#[cfg(test)]
-fn init_empty() -> GameLogic {
-    GameLogic::new(Some(MazeOrPath::Maze(maze::Maze::empty())))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_munch_ghost_collisions() {
-        let mut game = init_empty();
+        let mut game = GameLogic::new(config::Config::empty());
         game.munch.set_pos(5, 5);
         game.ghosts.push(ghost::Ghost::new(5, 5));
         assert_eq!(game.munch_ghost_collision(), Some(0));
