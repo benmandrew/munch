@@ -54,12 +54,21 @@ impl GameLogic {
         None
     }
 
+    fn get_blinky_pos(&self) -> (usize, usize) {
+        self.ghosts
+            .iter()
+            .find(|g| matches!(g.personality, ghost::Personality::Blinky))
+            .map(|g| g.actor.get_pos())
+            .unwrap()
+    }
+
     pub fn update(&mut self, time_delta: f32) -> GameResult {
         self.munch.walk(self.move_direction, &self.maze, time_delta);
         let dots_eaten = self.maze.eat_dots(&self.munch);
         self.score += dots_eaten as u32 * 10;
+        let blinky_pos = self.get_blinky_pos();
         for ghost in &mut self.ghosts {
-            ghost.move_along_path(&self.maze, &self.munch, time_delta);
+            ghost.move_along_path(&self.maze, &self.munch, blinky_pos, time_delta);
         }
         if let Some(_index) = self.munch_ghost_collision() {
             panic!("Munch collided with a ghost!");

@@ -38,7 +38,7 @@ pub struct Ghost {
     pub actor: actor::Actor,
     path: Vec<(usize, usize)>,
     path_index: usize,
-    personality: Personality,
+    pub personality: Personality,
 }
 
 impl Ghost {
@@ -51,11 +51,16 @@ impl Ghost {
         }
     }
 
-    pub fn generate_path(&mut self, maze: &maze::Maze, munch: &actor::Actor) {
+    pub fn generate_path(
+        &mut self,
+        maze: &maze::Maze,
+        munch: &actor::Actor,
+        blinky_pos: (usize, usize),
+    ) {
         let target = match self.personality {
             Personality::Blinky => get_blinky_target(munch),
             Personality::Pinky => get_pinky_target(munch, maze),
-            Personality::Inky => get_inky_target(munch),
+            Personality::Inky => get_inky_target(munch, maze, blinky_pos),
             Personality::Clyde => get_clyde_target(munch),
         };
         self.generate_path_to_target(maze, &target);
@@ -69,15 +74,21 @@ impl Ghost {
                 self.path_index = 0;
             }
             None => warn!(
-                "No path found for ghost from {:?} to {:?}",
-                ghost_pos, target
+                "No path found for {:?} from {:?} to {:?}",
+                self.personality, ghost_pos, target
             ),
         }
     }
 
-    pub fn move_along_path(&mut self, maze: &maze::Maze, munch: &actor::Actor, time_delta: f32) {
+    pub fn move_along_path(
+        &mut self,
+        maze: &maze::Maze,
+        munch: &actor::Actor,
+        blinky_pos: (usize, usize),
+        time_delta: f32,
+    ) {
         if self.path_index + 1 >= self.path.len() || self.path.len() <= 1 {
-            self.generate_path(maze, munch);
+            self.generate_path(maze, munch, blinky_pos);
             if self.path.len() <= 1 {
                 return;
             }
@@ -87,24 +98,28 @@ impl Ghost {
         let changed_discrete_position = self.actor.walk_no_collisions(direction, maze, time_delta);
         if changed_discrete_position {
             // self.path_index += 1;
-            self.generate_path(maze, munch);
+            self.generate_path(maze, munch, blinky_pos);
         }
     }
 }
 
+/// Blinky directly targets the player's current position.
 fn get_blinky_target(munch: &actor::Actor) -> (usize, usize) {
     munch.get_pos()
 }
 
-const PINKY_MAX_DIST_AHEAD: usize = 4;
-
-fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
-    let (x, y) = munch.get_pos();
-    for i in (1..PINKY_MAX_DIST_AHEAD + 1).rev() {
+/// Pinky tries to move towards the tile four spaces ahead of the player.
+fn get_lookahead_target(
+    munch: &actor::Actor,
+    maze: &maze::Maze,
+    lookahead: usize,
+) -> (usize, usize) {
+    let (mut x, mut y) = munch.get_pos();
+    for i in (1..lookahead + 1).rev() {
         match munch.move_direction {
             actor::Direction::Up => {
                 if y < i {
-                    continue;
+                    y += maze.height;
                 }
                 if maze.is_ghost_passable(x, y - i) {
                     return (x, y - i);
@@ -117,7 +132,7 @@ fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
             }
             actor::Direction::Left => {
                 if x < i {
-                    continue;
+                    x += maze.width;
                 }
                 if maze.is_ghost_passable(x - i, y) {
                     return (x - i, y);
@@ -131,11 +146,35 @@ fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
             _ => {}
         }
     }
-    (x, y)
+    (x % maze.width, y % maze.height)
 }
 
-fn get_inky_target(munch: &actor::Actor) -> (usize, usize) {
-    munch.get_pos()
+const PINKY_LOOKAHEAD: usize = 4;
+
+fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
+    get_lookahead_target(munch, maze, PINKY_LOOKAHEAD)
+}
+
+const INKY_LOOKAHEAD: usize = 2;
+
+/// Inky targets a position based on the player's position and Blinky's position.
+fn get_inky_target(
+    munch: &actor::Actor,
+    maze: &maze::Maze,
+    blinky_pos: (usize, usize),
+) -> (usize, usize) {
+    let (mut x, mut y) = get_lookahead_target(munch, maze, INKY_LOOKAHEAD);
+    if x < blinky_pos.0 {
+        x += maze.width + x - blinky_pos.0;
+    } else {
+        x += x - blinky_pos.0;
+    }
+    if y < blinky_pos.1 {
+        y += maze.height + y - blinky_pos.1;
+    } else {
+        y += y - blinky_pos.1;
+    }
+    (x % maze.width, y % maze.height)
 }
 
 fn get_clyde_target(munch: &actor::Actor) -> (usize, usize) {
@@ -213,5 +252,48 @@ mod tests {
 ####
 ";
         pretty_assertions::assert_eq!(marked.trim(), expected.trim());
+    }
+
+    #[test]
+    fn test_pinky_target() {
+        let maze_str = "
+###########
+#         #
+#         #
+#         #
+###########
+";
+        let maze = config::Config::from_string(maze_str).unwrap().maze;
+        let mut munch = actor::Actor::new(4, 1);
+        munch.move_direction = actor::Direction::Right;
+        let target = get_pinky_target(&munch, &maze);
+        pretty_assertions::assert_eq!(target, (4 + PINKY_LOOKAHEAD, 1));
+        munch.move_direction = actor::Direction::Down;
+        let target = get_pinky_target(&munch, &maze);
+        pretty_assertions::assert_eq!(target, (4, 3));
+    }
+
+    #[test]
+    fn test_inky_target() {
+        let maze_str = "
+###########
+#         #
+#         #
+#         #
+#         #
+#         #
+###########
+";
+        let maze = config::Config::from_string(maze_str).unwrap().maze;
+        let mut munch = actor::Actor::new(4, 3);
+        munch.move_direction = actor::Direction::Right;
+        let blinky_pos = (2, 2);
+        let target = get_inky_target(&munch, &maze, blinky_pos);
+        pretty_assertions::assert_eq!(target, (10, 4));
+        let mut munch = actor::Actor::new(4, 1);
+        munch.move_direction = actor::Direction::Up;
+        let blinky_pos = (1, 4);
+        let target = get_inky_target(&munch, &maze, blinky_pos);
+        pretty_assertions::assert_eq!(target, (7, 5));
     }
 }
