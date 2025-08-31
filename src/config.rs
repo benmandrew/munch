@@ -9,8 +9,8 @@ pub struct Config {
 fn match_maze_char(c: char) -> Result<maze::Tile, String> {
     match c {
         '#' => Ok(maze::Tile::Wall),
-        ' ' | 'M' | 'B' | 'P' | 'I' | 'C' => Ok(maze::Tile::Path),
-        '=' => Ok(maze::Tile::PlayerImpassable),
+        ' ' | 'M' => Ok(maze::Tile::Path),
+        '=' | 'B' | 'P' | 'I' | 'C' => Ok(maze::Tile::PlayerImpassable),
         '.' => Ok(maze::Tile::Dot),
         _ => Err(format!("Unknown tile character '{}'", c)),
     }
@@ -104,7 +104,10 @@ mod tests {
         pretty_assertions::assert_eq!(config.maze.width, 5);
         pretty_assertions::assert_eq!(config.maze.height, 5);
         pretty_assertions::assert_eq!(config.maze.get_tile(0, 0), Some(maze::Tile::Wall));
-        pretty_assertions::assert_eq!(config.maze.get_tile(1, 1), Some(maze::Tile::Path));
+        pretty_assertions::assert_eq!(
+            config.maze.get_tile(1, 1),
+            Some(maze::Tile::PlayerImpassable)
+        );
         pretty_assertions::assert_eq!(config.maze.get_tile(4, 4), Some(maze::Tile::Wall));
         pretty_assertions::assert_eq!(
             config.maze.get_tile(1, 2),

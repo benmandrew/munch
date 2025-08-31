@@ -50,7 +50,7 @@ impl Window {
             graphics::DrawParam::new()
                 .dest(rect.point())
                 .scale(rect.size())
-                .color(Color::WHITE),
+                .color(Color::CYAN),
         );
     }
 

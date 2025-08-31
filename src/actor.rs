@@ -8,6 +8,16 @@ pub enum Direction {
     Right,
 }
 
+pub fn reverse_dir(dir: Direction) -> Direction {
+    match dir {
+        Direction::Up => Direction::Down,
+        Direction::Down => Direction::Up,
+        Direction::Left => Direction::Right,
+        Direction::Right => Direction::Left,
+        Direction::Still => Direction::Still,
+    }
+}
+
 pub struct Actor {
     pub x: usize,
     pub y: usize,

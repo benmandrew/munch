@@ -1,30 +1,5 @@
-use log::warn;
-
 use crate::actor;
 use crate::maze;
-
-fn pair_to_direction(from: &(usize, usize), to: &(usize, usize)) -> actor::Direction {
-    let dx = to.0 as isize - from.0 as isize;
-    let dy = to.1 as isize - from.1 as isize;
-    if dx == 0 && dy == 0 {
-        warn!(
-            "pair_to_direction called with identical positions: {:?}",
-            from
-        );
-        return actor::Direction::Still;
-    }
-    if dx.abs() > dy.abs() {
-        if dx > 0 {
-            actor::Direction::Right
-        } else {
-            actor::Direction::Left
-        }
-    } else if dy > 0 {
-        actor::Direction::Down
-    } else {
-        actor::Direction::Up
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Personality {
@@ -36,22 +11,25 @@ pub enum Personality {
 
 pub struct Ghost {
     pub actor: actor::Actor,
-    path: Vec<(usize, usize)>,
-    path_index: usize,
     pub personality: Personality,
 }
+
+const POSSIBLE_DIRECTIONS: [actor::Direction; 4] = [
+    actor::Direction::Left,
+    actor::Direction::Right,
+    actor::Direction::Up,
+    actor::Direction::Down,
+];
 
 impl Ghost {
     pub fn new(x: usize, y: usize, personality: Personality) -> Ghost {
         Ghost {
             actor: actor::Actor::new(x, y),
-            path: Vec::new(),
-            path_index: 0,
             personality,
         }
     }
 
-    pub fn generate_path(
+    pub fn generate_next_tile(
         &mut self,
         maze: &maze::Maze,
         munch: &actor::Actor,
@@ -63,20 +41,34 @@ impl Ghost {
             Personality::Inky => get_inky_target(munch, maze, blinky_pos),
             Personality::Clyde => get_clyde_target(munch),
         };
-        self.generate_path_to_target(maze, &target);
+        self.generate_next_tile_with_target(maze, &target);
     }
 
-    fn generate_path_to_target(&mut self, maze: &maze::Maze, target: &(usize, usize)) {
+    fn generate_next_tile_with_target(&mut self, maze: &maze::Maze, target: &(usize, usize)) {
         let ghost_pos = self.actor.get_pos();
-        match maze.shortest_path(&ghost_pos, target) {
-            Some(path) => {
-                self.path = path;
-                self.path_index = 0;
+        let next_pos_with_dirs = POSSIBLE_DIRECTIONS
+            .iter()
+            .filter_map(|&dir| {
+                if dir == actor::reverse_dir(self.actor.move_direction) {
+                    None
+                } else {
+                    Some((next_pos_from_direction(dir, ghost_pos), dir))
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut min_distance_sqr = 0;
+        for (next_pos, dir) in next_pos_with_dirs {
+            if maze.is_ghost_passable(next_pos.0, next_pos.1) {
+                let d = dist_sqr(&next_pos, target);
+                if d < min_distance_sqr || min_distance_sqr == 0 {
+                    min_distance_sqr = d;
+                    self.actor.move_direction = dir;
+                }
             }
-            None => warn!(
-                "No path found for {:?} from {:?} to {:?}",
-                self.personality, ghost_pos, target
-            ),
+        }
+        if min_distance_sqr == 0 {
+            // No valid moves, so reverse direction
+            self.actor.move_direction = actor::reverse_dir(self.actor.move_direction);
         }
     }
 
@@ -87,19 +79,22 @@ impl Ghost {
         blinky_pos: (usize, usize),
         time_delta: f32,
     ) {
-        if self.path_index + 1 >= self.path.len() || self.path.len() <= 1 {
-            self.generate_path(maze, munch, blinky_pos);
-            if self.path.len() <= 1 {
-                return;
-            }
-        }
-        let direction =
-            pair_to_direction(&self.path[self.path_index], &self.path[self.path_index + 1]);
-        let changed_discrete_position = self.actor.walk_no_collisions(direction, maze, time_delta);
+        let changed_discrete_position =
+            self.actor
+                .walk_no_collisions(self.actor.move_direction, maze, time_delta);
         if changed_discrete_position {
-            // self.path_index += 1;
-            self.generate_path(maze, munch, blinky_pos);
+            self.generate_next_tile(maze, munch, blinky_pos);
         }
+    }
+}
+
+fn next_pos_from_direction(dir: actor::Direction, ghost_pos: (usize, usize)) -> (usize, usize) {
+    match dir {
+        actor::Direction::Up => (ghost_pos.0, ghost_pos.1.wrapping_sub(1)),
+        actor::Direction::Down => (ghost_pos.0, ghost_pos.1.wrapping_add(1)),
+        actor::Direction::Left => (ghost_pos.0.wrapping_sub(1), ghost_pos.1),
+        actor::Direction::Right => (ghost_pos.0.wrapping_add(1), ghost_pos.1),
+        actor::Direction::Still => ghost_pos,
     }
 }
 
@@ -149,6 +144,13 @@ fn get_lookahead_target(
     (x % maze.width, y % maze.height)
 }
 
+/// Squared distance between two points
+fn dist_sqr(a: &(usize, usize), b: &(usize, usize)) -> u32 {
+    let dx = a.0 as isize - b.0 as isize;
+    let dy = a.1 as isize - b.1 as isize;
+    (dx * dx + dy * dy) as u32
+}
+
 const PINKY_LOOKAHEAD: usize = 4;
 
 fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
@@ -185,74 +187,8 @@ fn get_clyde_target(munch: &actor::Actor) -> (usize, usize) {
 use crate::config;
 
 #[cfg(test)]
-fn mark_maze(maze: &maze::Maze, path: Vec<(usize, usize)>) -> String {
-    let maze_str = maze.to_string();
-    let mut result = String::with_capacity(maze_str.len());
-    let mut row_idx = 0;
-    for (i, c) in maze_str.chars().enumerate() {
-        if c == '\n' {
-            row_idx += 1;
-        }
-        if path.contains(&(i % (maze.width + 1), row_idx)) {
-            result.push('!');
-        } else {
-            result.push(c);
-        }
-    }
-    result
-}
-
-#[cfg(test)]
 mod tests {
-    use std::vec;
-
     use super::*;
-
-    #[test]
-    fn test_ghost_path_through_player_impassable_tile() {
-        let mut ghost = Ghost::new(1, 1, Personality::Blinky);
-        let maze_str = "
-#####
-#   #
-##=##
-#...#
-#####
-";
-        let maze = config::Config::from_string(maze_str).unwrap().maze;
-        ghost.generate_path_to_target(&maze, &(3, 3));
-        pretty_assertions::assert_eq!(ghost.path.len(), 5);
-        pretty_assertions::assert_eq!(ghost.path, vec![(1, 1), (2, 1), (2, 2), (2, 3), (3, 3)]);
-        let marked = mark_maze(&maze, ghost.path.clone());
-        let expected = "
-#####
-#!! #
-##!##
-#.!!#
-#####
-";
-        pretty_assertions::assert_eq!(marked.trim(), expected.trim());
-    }
-
-    #[test]
-    fn test_ghost_path_wraparound() {
-        let mut ghost = Ghost::new(0, 1, Personality::Inky);
-        let maze_str = "
-####
- #  
-####
-";
-        let maze = config::Config::from_string(maze_str).unwrap().maze;
-        ghost.generate_path_to_target(&maze, &(2, 1));
-        pretty_assertions::assert_eq!(ghost.path.len(), 3);
-        pretty_assertions::assert_eq!(ghost.path, vec![(0, 1), (3, 1), (2, 1)]);
-        let marked = mark_maze(&maze, ghost.path.clone());
-        let expected = "
-####
-!#!!
-####
-";
-        pretty_assertions::assert_eq!(marked.trim(), expected.trim());
-    }
 
     #[test]
     fn test_pinky_target() {
