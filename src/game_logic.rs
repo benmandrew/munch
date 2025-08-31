@@ -59,7 +59,7 @@ impl GameLogic {
             .iter()
             .find(|g| matches!(g.personality, ghost::Personality::Blinky))
             .map(|g| g.actor.get_pos())
-            .unwrap()
+            .unwrap_or((0, 0))
     }
 
     pub fn update(&mut self, time_delta: f32) -> GameResult {

@@ -9,9 +9,15 @@ pub enum Personality {
     Clyde,
 }
 
+enum Mode {
+    Chase,
+    Scatter,
+}
+
 pub struct Ghost {
     pub actor: actor::Actor,
     pub personality: Personality,
+    mode: Mode,
 }
 
 const POSSIBLE_DIRECTIONS: [actor::Direction; 4] = [
@@ -21,11 +27,14 @@ const POSSIBLE_DIRECTIONS: [actor::Direction; 4] = [
     actor::Direction::Down,
 ];
 
+const CLYDE_SCATTER_DIST_SQR: u32 = 8 * 8;
+
 impl Ghost {
     pub fn new(x: usize, y: usize, personality: Personality) -> Ghost {
         Ghost {
             actor: actor::Actor::new(x, y),
             personality,
+            mode: Mode::Chase,
         }
     }
 
@@ -35,11 +44,22 @@ impl Ghost {
         munch: &actor::Actor,
         blinky_pos: (usize, usize),
     ) {
-        let target = match self.personality {
-            Personality::Blinky => get_blinky_target(munch),
-            Personality::Pinky => get_pinky_target(munch, maze),
-            Personality::Inky => get_inky_target(munch, maze, blinky_pos),
-            Personality::Clyde => get_clyde_target(munch),
+        let target = match self.mode {
+            Mode::Chase => match self.personality {
+                Personality::Blinky => get_blinky_target(munch),
+                Personality::Pinky => get_pinky_target(munch, maze),
+                Personality::Inky => get_inky_target(munch, maze, blinky_pos),
+                Personality::Clyde => self.get_clyde_target(munch, maze),
+            },
+            Mode::Scatter => {
+                // Scatter targets are the corners of the maze
+                match self.personality {
+                    Personality::Blinky => (maze.width - 1, 0),
+                    Personality::Pinky => (0, 0),
+                    Personality::Inky => (maze.width - 1, maze.height - 1),
+                    Personality::Clyde => (0, maze.height - 1),
+                }
+            }
         };
         self.generate_next_tile_with_target(maze, &target);
     }
@@ -84,6 +104,14 @@ impl Ghost {
                 .walk_no_collisions(self.actor.move_direction, maze, time_delta);
         if changed_discrete_position {
             self.generate_next_tile(maze, munch, blinky_pos);
+        }
+    }
+
+    fn get_clyde_target(&self, munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
+        if dist_sqr(&munch.get_pos(), &self.actor.get_pos()) <= CLYDE_SCATTER_DIST_SQR {
+            (0, maze.height - 1)
+        } else {
+            munch.get_pos()
         }
     }
 }
@@ -177,10 +205,6 @@ fn get_inky_target(
         y += y - blinky_pos.1;
     }
     (x % maze.width, y % maze.height)
-}
-
-fn get_clyde_target(munch: &actor::Actor) -> (usize, usize) {
-    munch.get_pos()
 }
 
 #[cfg(test)]
