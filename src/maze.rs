@@ -22,13 +22,13 @@ pub fn ghost_passable(tile: &Tile) -> bool {
 
 #[derive(Debug)]
 pub struct Maze {
-    pub width: usize,
-    pub height: usize,
+    pub width: i32,
+    pub height: i32,
     maze: Vec<Tile>,
 }
 
 impl Maze {
-    pub fn new(width: usize, height: usize, maze: Vec<Tile>) -> Self {
+    pub fn new(width: i32, height: i32, maze: Vec<Tile>) -> Self {
         Maze {
             width,
             height,
@@ -52,27 +52,25 @@ impl Maze {
         }
     }
 
-    fn index(&self, x: usize, y: usize) -> usize {
-        y * self.width + x
+    fn index(&self, mut x: i32, mut y: i32) -> usize {
+        while x < 0 {
+            x += self.width;
+        }
+        while y < 0 {
+            y += self.height;
+        }
+        ((y % self.height) * self.width + (x % self.width)) as usize
     }
 
-    pub fn is_player_passable(&self, x: usize, y: usize) -> bool {
-        player_passable(
-            self.maze
-                .get(self.index(x % self.width, y % self.height))
-                .unwrap(),
-        )
+    pub fn is_player_passable(&self, x: i32, y: i32) -> bool {
+        player_passable(self.maze.get(self.index(x, y)).unwrap())
     }
 
-    pub fn is_ghost_passable(&self, x: usize, y: usize) -> bool {
-        ghost_passable(
-            self.maze
-                .get(self.index(x % self.width, y % self.height))
-                .unwrap(),
-        )
+    pub fn is_ghost_passable(&self, x: i32, y: i32) -> bool {
+        ghost_passable(self.maze.get(self.index(x, y)).unwrap())
     }
 
-    pub fn eat_dots(&mut self, munch: &actor::Actor) -> usize {
+    pub fn eat_dots(&mut self, munch: &actor::Actor) -> i32 {
         let covering_tiles = munch.get_covering_tiles(0.45);
         let mut eaten = 0;
         for (x, y) in covering_tiles {
@@ -88,7 +86,7 @@ impl Maze {
 
 impl std::fmt::Display for Maze {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut line = String::with_capacity(self.width);
+        let mut line = String::with_capacity(self.width as usize);
         for y in 0..self.height {
             line.clear();
             for x in 0..self.width {
@@ -110,15 +108,15 @@ impl std::fmt::Display for Maze {
 
 pub struct MazeIterator<'a> {
     maze: &'a Maze,
-    current: usize,
+    current: i32,
 }
 
 impl<'a> Iterator for MazeIterator<'a> {
     type Item = &'a Tile;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current < self.maze.maze.len() {
-            let tile = &self.maze.maze[self.current];
+        if self.current < self.maze.maze.len() as i32 {
+            let tile = &self.maze.maze[self.current as usize];
             self.current += 1;
             Some(tile)
         } else {
@@ -129,9 +127,9 @@ impl<'a> Iterator for MazeIterator<'a> {
 
 #[cfg(test)]
 impl Maze {
-    pub fn get_tile(&self, x: usize, y: usize) -> Option<Tile> {
+    pub fn get_tile(&self, x: i32, y: i32) -> Option<Tile> {
         if x < self.width && y < self.height {
-            Some(self.maze[y * self.width + x])
+            Some(self.maze[(y * self.width + x) as usize])
         } else {
             None
         }

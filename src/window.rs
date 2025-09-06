@@ -80,8 +80,8 @@ impl Window {
         let start_x = (self.width - phys_maze_width) / 2.0;
         let start_y = (self.height - phys_maze_height) / 2.0;
         for (i, tile) in maze.iter().enumerate() {
-            let x = (i % maze.width) as f32 * config::TILE_SIZE + start_x;
-            let y = (i / maze.width) as f32 * config::TILE_SIZE + start_y;
+            let x = (i % maze.width as usize) as f32 * config::TILE_SIZE + start_x;
+            let y = (i / maze.width as usize) as f32 * config::TILE_SIZE + start_y;
             match tile {
                 maze::Tile::Wall => self.draw_wall(canvas, x, y),
                 maze::Tile::PlayerImpassable => self.draw_player_impassable(canvas, x, y),
@@ -99,7 +99,8 @@ impl Window {
             munch_x * config::TILE_SIZE + start_x,
             munch_y * config::TILE_SIZE + start_y,
         );
-        self.spritesheet.draw_munch(canvas, pos);
+        self.spritesheet
+            .draw_munch(canvas, munch.move_direction, pos, self.frame);
     }
 
     fn draw_ghost(&self, canvas: &mut Canvas, ghost: &ghost::Ghost, start_x: f32, start_y: f32) {

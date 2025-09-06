@@ -1,4 +1,7 @@
 use crate::maze;
+
+const MOVEMENT_SPEED: f32 = 4.0;
+
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
     Still,
@@ -19,8 +22,8 @@ pub fn reverse_dir(dir: Direction) -> Direction {
 }
 
 pub struct Actor {
-    pub x: usize,
-    pub y: usize,
+    pub x: i32,
+    pub y: i32,
     progress_to_next_square: f32,
     pub move_direction: Direction,
 }
@@ -41,7 +44,7 @@ fn can_reverse(progress: f32, offset: f32) -> bool {
 }
 
 impl Actor {
-    pub fn new(x: usize, y: usize) -> Self {
+    pub fn new(x: i32, y: i32) -> Self {
         Actor {
             x,
             y,
@@ -50,12 +53,12 @@ impl Actor {
         }
     }
 
-    pub fn get_pos(&self) -> (usize, usize) {
+    pub fn get_pos(&self) -> (i32, i32) {
         (self.x, self.y)
     }
 
     #[cfg(test)]
-    pub fn set_pos(&mut self, x: usize, y: usize) {
+    pub fn set_pos(&mut self, x: i32, y: i32) {
         self.x = x;
         self.y = y;
     }
@@ -76,7 +79,7 @@ impl Actor {
     /// Get the tile coordinates covered by Actor
     /// We include the current discrete tile, as well as the tile in front of
     /// Actor if the progress to the next square is greater than the threshold
-    pub fn get_covering_tiles(&self, threshold: f32) -> Vec<(usize, usize)> {
+    pub fn get_covering_tiles(&self, threshold: f32) -> Vec<(i32, i32)> {
         let mut v = vec![(self.x, self.y)];
         if self.progress_to_next_square > threshold {
             match self.move_direction {
@@ -93,7 +96,7 @@ impl Actor {
     /// Walk the actor in the specified direction, taking into account the maze and time delta
     /// Return a boolean indicating whether the actor changed discrete position
     pub fn walk(&mut self, direction: Direction, maze: &maze::Maze, time_delta: f32) -> bool {
-        let offset = 3.0 * time_delta;
+        let offset = MOVEMENT_SPEED * time_delta;
         if self.move_direction == Direction::Still {
             self.move_direction = direction;
         }
@@ -256,7 +259,7 @@ impl Actor {
         time_delta: f32,
     ) -> bool {
         self.move_direction = direction;
-        self.progress_to_next_square += 3.0 * time_delta;
+        self.progress_to_next_square += MOVEMENT_SPEED * time_delta;
         self.update_discrete_position(maze)
     }
 

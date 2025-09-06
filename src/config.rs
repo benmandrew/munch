@@ -4,8 +4,8 @@ pub const TILE_SIZE: f32 = 48.0;
 
 pub struct Config {
     pub maze: maze::Maze,
-    pub player_pos: Option<(usize, usize)>,
-    pub ghosts_pos: Vec<(usize, usize, ghost::Personality)>,
+    pub player_pos: Option<(i32, i32)>,
+    pub ghosts_pos: Vec<(i32, i32, ghost::Personality)>,
 }
 
 fn match_maze_char(c: char) -> Result<maze::Tile, String> {
@@ -51,26 +51,26 @@ impl Config {
                 match c {
                     'M' => {
                         assert!(player_pos.is_none(), "Multiple player positions found");
-                        player_pos = Some((x, y));
+                        player_pos = Some((x as i32, y as i32));
                     }
                     'B' => {
-                        ghosts_pos.push((x, y, ghost::Personality::Blinky));
+                        ghosts_pos.push((x as i32, y as i32, ghost::Personality::Blinky));
                     }
                     'I' => {
-                        ghosts_pos.push((x, y, ghost::Personality::Inky));
+                        ghosts_pos.push((x as i32, y as i32, ghost::Personality::Inky));
                     }
                     'P' => {
-                        ghosts_pos.push((x, y, ghost::Personality::Pinky));
+                        ghosts_pos.push((x as i32, y as i32, ghost::Personality::Pinky));
                     }
                     'C' => {
-                        ghosts_pos.push((x, y, ghost::Personality::Clyde));
+                        ghosts_pos.push((x as i32, y as i32, ghost::Personality::Clyde));
                     }
                     _ => {}
                 }
             }
         }
         Ok(Config {
-            maze: maze::Maze::new(width, height, maze),
+            maze: maze::Maze::new(width as i32, height as i32, maze),
             player_pos,
             ghosts_pos,
         })

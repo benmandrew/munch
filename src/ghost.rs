@@ -30,7 +30,7 @@ const POSSIBLE_DIRECTIONS: [actor::Direction; 4] = [
 const CLYDE_SCATTER_DIST_SQR: u32 = 8 * 8;
 
 impl Ghost {
-    pub fn new(x: usize, y: usize, personality: Personality) -> Ghost {
+    pub fn new(x: i32, y: i32, personality: Personality) -> Ghost {
         Ghost {
             actor: actor::Actor::new(x, y),
             personality,
@@ -42,7 +42,7 @@ impl Ghost {
         &mut self,
         maze: &maze::Maze,
         munch: &actor::Actor,
-        blinky_pos: (usize, usize),
+        blinky_pos: (i32, i32),
     ) {
         let target = match self.mode {
             Mode::Chase => match self.personality {
@@ -64,7 +64,7 @@ impl Ghost {
         self.generate_next_tile_with_target(maze, &target);
     }
 
-    fn generate_next_tile_with_target(&mut self, maze: &maze::Maze, target: &(usize, usize)) {
+    fn generate_next_tile_with_target(&mut self, maze: &maze::Maze, target: &(i32, i32)) {
         let ghost_pos = self.actor.get_pos();
         let next_pos_with_dirs = POSSIBLE_DIRECTIONS
             .iter()
@@ -96,7 +96,7 @@ impl Ghost {
         &mut self,
         maze: &maze::Maze,
         munch: &actor::Actor,
-        blinky_pos: (usize, usize),
+        blinky_pos: (i32, i32),
         time_delta: f32,
     ) {
         let changed_discrete_position =
@@ -107,7 +107,7 @@ impl Ghost {
         }
     }
 
-    fn get_clyde_target(&self, munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
+    fn get_clyde_target(&self, munch: &actor::Actor, maze: &maze::Maze) -> (i32, i32) {
         if dist_sqr(&munch.get_pos(), &self.actor.get_pos()) <= CLYDE_SCATTER_DIST_SQR {
             (0, maze.height - 1)
         } else {
@@ -116,7 +116,7 @@ impl Ghost {
     }
 }
 
-fn next_pos_from_direction(dir: actor::Direction, ghost_pos: (usize, usize)) -> (usize, usize) {
+fn next_pos_from_direction(dir: actor::Direction, ghost_pos: (i32, i32)) -> (i32, i32) {
     match dir {
         actor::Direction::Up => (ghost_pos.0, ghost_pos.1.wrapping_sub(1)),
         actor::Direction::Down => (ghost_pos.0, ghost_pos.1.wrapping_add(1)),
@@ -127,16 +127,12 @@ fn next_pos_from_direction(dir: actor::Direction, ghost_pos: (usize, usize)) -> 
 }
 
 /// Blinky directly targets the player's current position.
-fn get_blinky_target(munch: &actor::Actor) -> (usize, usize) {
+fn get_blinky_target(munch: &actor::Actor) -> (i32, i32) {
     munch.get_pos()
 }
 
 /// Pinky tries to move towards the tile four spaces ahead of the player.
-fn get_lookahead_target(
-    munch: &actor::Actor,
-    maze: &maze::Maze,
-    lookahead: usize,
-) -> (usize, usize) {
+fn get_lookahead_target(munch: &actor::Actor, maze: &maze::Maze, lookahead: i32) -> (i32, i32) {
     let (mut x, mut y) = munch.get_pos();
     for i in (1..lookahead + 1).rev() {
         match munch.move_direction {
@@ -173,26 +169,22 @@ fn get_lookahead_target(
 }
 
 /// Squared distance between two points
-fn dist_sqr(a: &(usize, usize), b: &(usize, usize)) -> u32 {
+fn dist_sqr(a: &(i32, i32), b: &(i32, i32)) -> u32 {
     let dx = a.0 as isize - b.0 as isize;
     let dy = a.1 as isize - b.1 as isize;
     (dx * dx + dy * dy) as u32
 }
 
-const PINKY_LOOKAHEAD: usize = 4;
+const PINKY_LOOKAHEAD: i32 = 4;
 
-fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (usize, usize) {
+fn get_pinky_target(munch: &actor::Actor, maze: &maze::Maze) -> (i32, i32) {
     get_lookahead_target(munch, maze, PINKY_LOOKAHEAD)
 }
 
-const INKY_LOOKAHEAD: usize = 2;
+const INKY_LOOKAHEAD: i32 = 2;
 
 /// Inky targets a position based on the player's position and Blinky's position.
-fn get_inky_target(
-    munch: &actor::Actor,
-    maze: &maze::Maze,
-    blinky_pos: (usize, usize),
-) -> (usize, usize) {
+fn get_inky_target(munch: &actor::Actor, maze: &maze::Maze, blinky_pos: (i32, i32)) -> (i32, i32) {
     let (mut x, mut y) = get_lookahead_target(munch, maze, INKY_LOOKAHEAD);
     if x < blinky_pos.0 {
         x += maze.width + x - blinky_pos.0;

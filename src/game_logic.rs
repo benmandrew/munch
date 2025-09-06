@@ -54,7 +54,7 @@ impl GameLogic {
         None
     }
 
-    fn get_blinky_pos(&self) -> (usize, usize) {
+    fn get_blinky_pos(&self) -> (i32, i32) {
         self.ghosts
             .iter()
             .find(|g| matches!(g.personality, ghost::Personality::Blinky))

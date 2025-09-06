@@ -67,8 +67,25 @@ impl SpriteSheet {
         );
     }
 
-    pub fn draw_munch(&self, canvas: &mut graphics::Canvas, pos: glam::Vec2) {
-        self.draw_sprite(canvas, 2, 6, pos);
+    pub fn draw_munch(
+        &self,
+        canvas: &mut graphics::Canvas,
+        direction: actor::Direction,
+        pos: glam::Vec2,
+        frame: usize,
+    ) {
+        let anim_frame = ((frame / ANIM_FPS) % 3) as u32;
+        if anim_frame == 2 {
+            self.draw_sprite(canvas, 0, 6, pos);
+        }
+        match direction {
+            actor::Direction::Still | actor::Direction::Right => {
+                self.draw_sprite(canvas, 1 + anim_frame, 6, pos)
+            }
+            actor::Direction::Down => self.draw_sprite(canvas, 3 + anim_frame, 6, pos),
+            actor::Direction::Left => self.draw_sprite(canvas, 5 + anim_frame, 6, pos),
+            actor::Direction::Up => self.draw_sprite(canvas, 7 + anim_frame, 6, pos),
+        }
     }
 
     pub fn draw_ghost(
