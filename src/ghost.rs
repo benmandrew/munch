@@ -107,6 +107,14 @@ impl Ghost {
         }
     }
 
+    pub fn set_mode_scatter(&mut self) {
+        self.mode = Mode::Scatter;
+    }
+
+    pub fn set_mode_chase(&mut self) {
+        self.mode = Mode::Chase;
+    }
+
     fn get_clyde_target(&self, munch: &actor::Actor, maze: &maze::Maze) -> (i32, i32) {
         if dist_sqr(&munch.get_pos(), &self.actor.get_pos()) <= CLYDE_SCATTER_DIST_SQR {
             (0, maze.height - 1)

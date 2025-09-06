@@ -5,11 +5,54 @@ use ggez::GameResult;
 
 use crate::{actor, config, ghost, maze};
 
+const ENERGISED_TIME: f32 = 10.0;
+
+/// Has Munch eaten a power pellet recently?
+/// If so, the ghosts can be eaten.
+struct Energised {
+    is_energised: bool,
+    timer: f32,
+}
+
+impl Energised {
+    fn new() -> Self {
+        Energised {
+            is_energised: false,
+            timer: 0.0,
+        }
+    }
+
+    fn update(
+        &mut self,
+        ghosts: &mut Vec<ghost::Ghost>,
+        power_pellets_eaten: i32,
+        time_delta: f32,
+    ) {
+        if power_pellets_eaten > 0 {
+            log::info!("Munch is energised");
+            self.timer = ENERGISED_TIME;
+            self.is_energised = true;
+            for ghost in ghosts {
+                ghost.set_mode_scatter();
+            }
+        } else if self.timer > 0.0 {
+            self.timer -= time_delta;
+        } else if self.is_energised {
+            log::info!("Munch is no longer energised");
+            self.is_energised = false;
+            for ghost in ghosts {
+                ghost.set_mode_chase();
+            }
+        }
+    }
+}
+
 pub struct GameLogic {
     pub maze: maze::Maze,
     pub munch: actor::Actor,
     pub ghosts: Vec<ghost::Ghost>,
     move_direction: actor::Direction,
+    energised: Energised,
     pub score: u32,
 }
 
@@ -28,6 +71,7 @@ impl GameLogic {
                 .map(|&(x, y, personality)| ghost::Ghost::new(x, y, personality))
                 .collect(),
             move_direction: actor::Direction::Still,
+            energised: Energised::new(),
             score: 0,
         }
     }
@@ -62,10 +106,21 @@ impl GameLogic {
             .unwrap_or((0, 0))
     }
 
+    fn add_score(&mut self, dots_eaten: i32, power_pellets_eaten: i32) {
+        self.score += dots_eaten as u32 * 10 + power_pellets_eaten as u32 * 50;
+    }
+
+    fn handle_eating(&mut self, time_delta: f32) {
+        let dots_eaten = self.maze.eat_dots(&self.munch);
+        let power_pellets_eaten = self.maze.eat_power_pellets(&self.munch);
+        self.energised
+            .update(&mut self.ghosts, power_pellets_eaten, time_delta);
+        self.add_score(dots_eaten, power_pellets_eaten);
+    }
+
     pub fn update(&mut self, time_delta: f32) -> GameResult {
         self.munch.walk(self.move_direction, &self.maze, time_delta);
-        let dots_eaten = self.maze.eat_dots(&self.munch);
-        self.score += dots_eaten as u32 * 10;
+        self.handle_eating(time_delta);
         let blinky_pos = self.get_blinky_pos();
         for ghost in &mut self.ghosts {
             ghost.move_along_path(&self.maze, &self.munch, blinky_pos, time_delta);

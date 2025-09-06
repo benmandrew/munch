@@ -82,6 +82,19 @@ impl Maze {
         }
         eaten
     }
+
+    pub fn eat_power_pellets(&mut self, munch: &actor::Actor) -> i32 {
+        let covering_tiles = munch.get_covering_tiles(0.45);
+        let mut eaten = 0;
+        for (x, y) in covering_tiles {
+            if self.maze.get(self.index(x, y)) == Some(&Tile::PowerPellet) {
+                eaten += 1;
+                let index = self.index(x, y);
+                self.maze[index] = Tile::Path;
+            }
+        }
+        eaten
+    }
 }
 
 impl std::fmt::Display for Maze {

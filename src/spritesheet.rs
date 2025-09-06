@@ -2,8 +2,6 @@ use ggez::glam;
 use ggez::graphics;
 use ggez::Context;
 
-use log::error;
-
 use crate::{actor, config, ghost};
 
 pub struct SpriteSheet {
@@ -22,7 +20,7 @@ impl SpriteSheet {
         let image = match graphics::Image::from_path(ctx, SPRITESHEET_PATH) {
             Ok(img) => img,
             Err(e) => {
-                error!("Failed to load spritesheet image: {}", e);
+                log::error!("Failed to load spritesheet image: {}", e);
                 std::process::exit(1);
             }
         };

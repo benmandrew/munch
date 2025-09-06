@@ -1,7 +1,6 @@
 use ggez::conf;
 use ggez::event::{self, EventLoop};
 use ggez::{Context, ContextBuilder};
-use log::error;
 
 mod actor;
 mod config;
@@ -36,7 +35,7 @@ fn init_config() -> config::Config {
     match config::Config::from_file("resources/maze.txt") {
         Ok(config) => config,
         Err(e) => {
-            error!("Error loading config: {}", e);
+            log::error!("Error loading config: {}", e);
             std::process::exit(1);
         }
     }
