@@ -9,6 +9,7 @@ mod game;
 mod game_logic;
 mod ghost;
 mod maze;
+mod spritesheet;
 mod window;
 
 fn init_logger() {

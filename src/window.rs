@@ -1,39 +1,33 @@
-use ggez::graphics::{self, Canvas, Color, Image, Text};
+use ggez::graphics::{self, Canvas, Color, Text};
 use ggez::{Context, GameResult};
 
 use ggez::glam;
-use log::error;
 
-use crate::{actor, ghost, maze};
+use crate::{actor, config, ghost, maze, spritesheet};
 
-const SCALE: f32 = 32.0;
-const PELLET_SCALE: f32 = 0.2;
+const DOT_SCALE: f32 = 0.2;
+const POWER_PELLET_SCALE: f32 = 0.4;
 
 pub struct Window {
-    image: Image,
+    spritesheet: spritesheet::SpriteSheet,
     width: f32,
     height: f32,
+    frame: usize,
 }
 
 impl Window {
     pub fn new(ctx: &mut Context) -> Window {
         let size = ctx.gfx.window().inner_size();
-        let image = match Image::from_path(ctx, "/pacman.bmp") {
-            Ok(img) => img,
-            Err(e) => {
-                error!("Failed to load image: {}", e);
-                std::process::exit(1);
-            }
-        };
         Window {
-            image,
+            spritesheet: spritesheet::SpriteSheet::new(ctx),
             width: size.width as f32,
             height: size.height as f32,
+            frame: 0,
         }
     }
 
     fn draw_wall(&self, canvas: &mut Canvas, x: f32, y: f32) {
-        let rect = graphics::Rect::new(x, y, SCALE, SCALE);
+        let rect = graphics::Rect::new(x, y, config::TILE_SIZE, config::TILE_SIZE);
         canvas.draw(
             &graphics::Quad,
             graphics::DrawParam::new()
@@ -44,7 +38,7 @@ impl Window {
     }
 
     fn draw_player_impassable(&self, canvas: &mut Canvas, x: f32, y: f32) {
-        let rect = graphics::Rect::new(x, y, SCALE, SCALE);
+        let rect = graphics::Rect::new(x, y, config::TILE_SIZE, config::TILE_SIZE);
         canvas.draw(
             &graphics::Quad,
             graphics::DrawParam::new()
@@ -55,8 +49,21 @@ impl Window {
     }
 
     fn draw_dot(&self, canvas: &mut Canvas, x: f32, y: f32) {
-        let dot_size = SCALE * PELLET_SCALE;
-        let offset = (SCALE - dot_size) / 2.0;
+        let dot_size = config::TILE_SIZE * DOT_SCALE;
+        let offset = (config::TILE_SIZE - dot_size) / 2.0;
+        let rect = graphics::Rect::new(x + offset, y + offset, dot_size, dot_size);
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest(rect.point())
+                .scale(rect.size())
+                .color(Color::MAGENTA),
+        );
+    }
+
+    fn draw_power_pellet(&self, canvas: &mut Canvas, x: f32, y: f32) {
+        let dot_size = config::TILE_SIZE * POWER_PELLET_SCALE;
+        let offset = (config::TILE_SIZE - dot_size) / 2.0;
         let rect = graphics::Rect::new(x + offset, y + offset, dot_size, dot_size);
         canvas.draw(
             &graphics::Quad,
@@ -68,17 +75,18 @@ impl Window {
     }
 
     fn draw_maze(&self, canvas: &mut Canvas, maze: &maze::Maze) -> (f32, f32) {
-        let phys_maze_width = maze.width as f32 * SCALE;
-        let phys_maze_height = maze.height as f32 * SCALE;
+        let phys_maze_width = maze.width as f32 * config::TILE_SIZE;
+        let phys_maze_height = maze.height as f32 * config::TILE_SIZE;
         let start_x = (self.width - phys_maze_width) / 2.0;
         let start_y = (self.height - phys_maze_height) / 2.0;
         for (i, tile) in maze.iter().enumerate() {
-            let x = (i % maze.width) as f32 * SCALE + start_x;
-            let y = (i / maze.width) as f32 * SCALE + start_y;
+            let x = (i % maze.width) as f32 * config::TILE_SIZE + start_x;
+            let y = (i / maze.width) as f32 * config::TILE_SIZE + start_y;
             match tile {
                 maze::Tile::Wall => self.draw_wall(canvas, x, y),
                 maze::Tile::PlayerImpassable => self.draw_player_impassable(canvas, x, y),
                 maze::Tile::Dot => self.draw_dot(canvas, x, y),
+                maze::Tile::PowerPellet => self.draw_power_pellet(canvas, x, y),
                 maze::Tile::Path => continue,
             };
         }
@@ -87,17 +95,25 @@ impl Window {
 
     fn draw_munch(&self, canvas: &mut Canvas, munch: &actor::Actor, start_x: f32, start_y: f32) {
         let (munch_x, munch_y) = munch.get_draw_pos();
-        let pos = glam::Vec2::new(munch_x * SCALE + start_x, munch_y * SCALE + start_y);
-        canvas.draw(&self.image, graphics::DrawParam::new().dest(pos));
+        let pos = glam::Vec2::new(
+            munch_x * config::TILE_SIZE + start_x,
+            munch_y * config::TILE_SIZE + start_y,
+        );
+        self.spritesheet.draw_munch(canvas, pos);
     }
 
-    fn draw_ghost(&self, canvas: &mut Canvas, ghost: &actor::Actor, start_x: f32, start_y: f32) {
-        let (ghost_x, ghost_y) = ghost.get_draw_pos();
-        let pos = glam::Vec2::new(ghost_x * SCALE + start_x, ghost_y * SCALE + start_y);
-        let ghost_color = Color::RED;
-        canvas.draw(
-            &self.image,
-            graphics::DrawParam::new().dest(pos).color(ghost_color),
+    fn draw_ghost(&self, canvas: &mut Canvas, ghost: &ghost::Ghost, start_x: f32, start_y: f32) {
+        let (ghost_x, ghost_y) = ghost.actor.get_draw_pos();
+        let pos = glam::Vec2::new(
+            ghost_x * config::TILE_SIZE + start_x,
+            ghost_y * config::TILE_SIZE + start_y,
+        );
+        self.spritesheet.draw_ghost(
+            canvas,
+            ghost.actor.move_direction,
+            pos,
+            self.frame,
+            ghost.personality,
         );
     }
 
@@ -131,10 +147,11 @@ impl Window {
         let (start_x, start_y) = self.draw_maze(&mut canvas, maze);
         self.draw_munch(&mut canvas, munch, start_x, start_y);
         for ghost in ghosts {
-            self.draw_ghost(&mut canvas, &ghost.actor, start_x, start_y);
+            self.draw_ghost(&mut canvas, ghost, start_x, start_y);
         }
         self.draw_fps(ctx, &mut canvas);
         self.draw_score(&mut canvas, score);
+        (self.frame, _) = usize::overflowing_add(self.frame, 1);
         canvas.finish(ctx)
     }
 

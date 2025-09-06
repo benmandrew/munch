@@ -1,5 +1,7 @@
 use crate::{ghost, maze};
 
+pub const TILE_SIZE: f32 = 48.0;
+
 pub struct Config {
     pub maze: maze::Maze,
     pub player_pos: Option<(usize, usize)>,
@@ -12,6 +14,7 @@ fn match_maze_char(c: char) -> Result<maze::Tile, String> {
         ' ' | 'M' => Ok(maze::Tile::Path),
         '=' | 'B' | 'P' | 'I' | 'C' => Ok(maze::Tile::PlayerImpassable),
         '.' => Ok(maze::Tile::Dot),
+        '*' => Ok(maze::Tile::PowerPellet),
         _ => Err(format!("Unknown tile character '{}'", c)),
     }
 }
@@ -94,7 +97,7 @@ mod tests {
         let maze_str = "
 #####
 #PM #
-#=#=#
+#=#*#
 #.BI#
 #####
 ";
@@ -143,7 +146,7 @@ mod tests {
     fn test_maze_invalid_character() {
         let maze_str = "
 #####
-#   #
+#  *#
 # # #
 #   #
 #@###

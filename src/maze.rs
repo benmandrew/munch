@@ -6,14 +6,18 @@ pub enum Tile {
     Path,
     PlayerImpassable,
     Dot,
+    PowerPellet,
 }
 
 pub fn player_passable(tile: &Tile) -> bool {
-    matches!(tile, Tile::Path | Tile::Dot)
+    matches!(tile, Tile::Path | Tile::Dot | Tile::PowerPellet)
 }
 
 pub fn ghost_passable(tile: &Tile) -> bool {
-    matches!(tile, Tile::Path | Tile::PlayerImpassable | Tile::Dot)
+    matches!(
+        tile,
+        Tile::Path | Tile::PlayerImpassable | Tile::Dot | Tile::PowerPellet
+    )
 }
 
 #[derive(Debug)]
@@ -94,6 +98,7 @@ impl std::fmt::Display for Maze {
                     Tile::Path => ' ',
                     Tile::PlayerImpassable => '=',
                     Tile::Dot => '.',
+                    Tile::PowerPellet => '*',
                 };
                 line.push(c);
             }
@@ -146,7 +151,7 @@ mod tests {
 #####
 #   #
 #=#=#
-#...#
+#..*#
 #####
 ";
         let maze = config::Config::from_string(maze_str).unwrap().maze;
