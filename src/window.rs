@@ -84,7 +84,9 @@ impl Window {
             let y = (i / maze.width as usize) as f32 * config::TILE_SIZE + start_y;
             match tile {
                 maze::Tile::Wall => self.draw_wall(canvas, x, y),
-                maze::Tile::PlayerImpassable => self.draw_player_impassable(canvas, x, y),
+                maze::Tile::PlayerImpassable | maze::Tile::Respawn => {
+                    self.draw_player_impassable(canvas, x, y)
+                }
                 maze::Tile::Dot => self.draw_dot(canvas, x, y),
                 maze::Tile::PowerPellet => self.draw_power_pellet(canvas, x, y),
                 maze::Tile::Path => continue,

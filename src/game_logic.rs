@@ -122,8 +122,7 @@ impl GameLogic {
         let blinky_pos = self.get_blinky_pos();
         for ghost in &mut self.ghosts {
             ghost.move_along_path(&self.maze, &self.munch, blinky_pos, time_delta);
-            if ghost.actor.get_pos() == (self.maze.width / 2, self.maze.height / 2 - 1)
-                && ghost.mode == ghost::Mode::Eaten
+            if ghost.actor.get_pos() == self.maze.respawn_point && ghost.mode == ghost::Mode::Eaten
             {
                 log::info!("{:?} has respawned", ghost.personality);
                 ghost.mode = ghost::Mode::Chase;
@@ -139,7 +138,7 @@ impl GameLogic {
             }
         } else {
             log::info!(
-                "Munch collided with a {:?}.",
+                "Munch collided with {:?}.",
                 self.ghosts[ghost_index].personality
             );
             panic!("Munch collided with a ghost!");

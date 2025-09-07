@@ -13,6 +13,7 @@ fn match_maze_char(c: char) -> Result<maze::Tile, String> {
         '#' => Ok(maze::Tile::Wall),
         ' ' | 'M' => Ok(maze::Tile::Path),
         '=' | 'B' | 'P' | 'I' | 'C' => Ok(maze::Tile::PlayerImpassable),
+        'R' => Ok(maze::Tile::Respawn),
         '.' => Ok(maze::Tile::Dot),
         '*' => Ok(maze::Tile::PowerPellet),
         _ => Err(format!("Unknown tile character '{}'", c)),
@@ -27,6 +28,28 @@ impl Config {
         }
     }
 
+    fn add_tile(
+        maze: &mut Vec<maze::Tile>,
+        c: char,
+        respawn_point: &mut Option<(i32, i32)>,
+        x: i32,
+        y: i32,
+    ) -> Result<(), String> {
+        match match_maze_char(c) {
+            Ok(tile) => {
+                if tile == maze::Tile::Respawn {
+                    if respawn_point.is_some() {
+                        return Err("Second respawn tile found".to_string());
+                    }
+                    respawn_point.replace((x, y));
+                }
+                maze.push(tile);
+            }
+            Err(e) => return Err(e),
+        };
+        Ok(())
+    }
+
     pub fn from_string(s: &str) -> Result<Self, String> {
         let lines: Vec<&str> = s.trim().split('\n').collect();
         let width = lines[0].len();
@@ -34,6 +57,7 @@ impl Config {
         let mut maze = Vec::with_capacity(width * height);
         let mut player_pos = None;
         let mut ghosts_pos = Vec::new();
+        let mut respawn_point: Option<(i32, i32)> = None;
         for (y, line) in lines.iter().enumerate() {
             if width != line.len() {
                 return Err(format!(
@@ -44,8 +68,8 @@ impl Config {
                 ));
             }
             for (x, c) in line.chars().enumerate() {
-                match match_maze_char(c) {
-                    Ok(tile) => maze.push(tile),
+                match Self::add_tile(&mut maze, c, &mut respawn_point, x as i32, y as i32) {
+                    Ok(()) => {}
                     Err(e) => return Err(format!("Error at ({}, {}): {}", x, y, e)),
                 };
                 match c {
@@ -69,11 +93,14 @@ impl Config {
                 }
             }
         }
-        Ok(Config {
-            maze: maze::Maze::new(width as i32, height as i32, maze),
-            player_pos,
-            ghosts_pos,
-        })
+        match respawn_point {
+            Some(respawn_point) => Ok(Config {
+                maze: maze::Maze::new(width as i32, height as i32, maze, respawn_point),
+                player_pos,
+                ghosts_pos,
+            }),
+            None => Err("No respawn tile found".to_string()),
+        }
     }
 
     #[cfg(test)]
@@ -95,16 +122,16 @@ mod tests {
     #[test]
     fn test_maze_from_string() {
         let maze_str = "
-#####
-#PM #
-#=#*#
-#.BI#
-#####
+######
+#PM  #
+#=#*R#
+#.BI #
+######
 ";
         let config_result = Config::from_string(maze_str);
         assert!(config_result.is_ok());
         let config = config_result.unwrap();
-        pretty_assertions::assert_eq!(config.maze.width, 5);
+        pretty_assertions::assert_eq!(config.maze.width, 6);
         pretty_assertions::assert_eq!(config.maze.height, 5);
         pretty_assertions::assert_eq!(config.maze.get_tile(0, 0), Some(maze::Tile::Wall));
         pretty_assertions::assert_eq!(

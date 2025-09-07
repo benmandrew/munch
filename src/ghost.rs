@@ -62,7 +62,7 @@ impl Ghost {
                     Personality::Clyde => (0, maze.height - 1),
                 }
             }
-            Mode::Eaten => (maze.width / 2, maze.height / 2),
+            Mode::Eaten => maze.respawn_point,
         };
         self.generate_next_tile_with_target(maze, &target);
     }
@@ -234,7 +234,7 @@ mod tests {
         let maze_str = "
 ###########
 #         #
-#         #
+#    R    #
 #         #
 ###########
 ";
@@ -254,7 +254,7 @@ mod tests {
 ###########
 #         #
 #         #
-#         #
+#    R    #
 #         #
 #         #
 ###########

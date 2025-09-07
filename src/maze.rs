@@ -5,6 +5,7 @@ pub enum Tile {
     Wall,
     Path,
     PlayerImpassable,
+    Respawn,
     Dot,
     PowerPellet,
 }
@@ -16,7 +17,7 @@ pub fn player_passable(tile: &Tile) -> bool {
 pub fn ghost_passable(tile: &Tile) -> bool {
     matches!(
         tile,
-        Tile::Path | Tile::PlayerImpassable | Tile::Dot | Tile::PowerPellet
+        Tile::Path | Tile::PlayerImpassable | Tile::Dot | Tile::PowerPellet | Tile::Respawn
     )
 }
 
@@ -25,14 +26,16 @@ pub struct Maze {
     pub width: i32,
     pub height: i32,
     maze: Vec<Tile>,
+    pub respawn_point: (i32, i32),
 }
 
 impl Maze {
-    pub fn new(width: i32, height: i32, maze: Vec<Tile>) -> Self {
+    pub fn new(width: i32, height: i32, maze: Vec<Tile>, respawn_point: (i32, i32)) -> Self {
         Maze {
             width,
             height,
             maze,
+            respawn_point,
         }
     }
 
@@ -42,6 +45,7 @@ impl Maze {
             width: 0,
             height: 0,
             maze: Vec::new(),
+            respawn_point: (0, 0),
         }
     }
 
@@ -110,6 +114,7 @@ impl std::fmt::Display for Maze {
                     Tile::PlayerImpassable => '=',
                     Tile::Dot => '.',
                     Tile::PowerPellet => '*',
+                    Tile::Respawn => 'R',
                 };
                 line.push(c);
             }
@@ -160,7 +165,7 @@ mod tests {
     fn test_maze_to_string() {
         let maze_str = "
 #####
-#   #
+# R #
 #=#=#
 #..*#
 #####
