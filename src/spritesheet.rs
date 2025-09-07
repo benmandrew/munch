@@ -89,25 +89,61 @@ impl SpriteSheet {
     pub fn draw_ghost(
         &self,
         canvas: &mut graphics::Canvas,
-        direction: actor::Direction,
+        ghost: &ghost::Ghost,
         pos: glam::Vec2,
         frame: usize,
-        personality: ghost::Personality,
+    ) {
+        if ghost.mode == ghost::Mode::Chase {
+            self.draw_ghost_chase(canvas, ghost, pos, frame);
+        } else {
+            self.draw_ghost_scatter(canvas, ghost, pos, frame);
+        }
+    }
+
+    fn draw_ghost_chase(
+        &self,
+        canvas: &mut graphics::Canvas,
+        ghost: &ghost::Ghost,
+        pos: glam::Vec2,
+        frame: usize,
     ) {
         let anim_frame = ((frame / ANIM_FPS) % 3) as u32;
-        let y = match personality {
+        let y = match ghost.personality {
             ghost::Personality::Blinky => 0,
             ghost::Personality::Inky => 1,
             ghost::Personality::Pinky => 2,
             ghost::Personality::Clyde => 3,
         };
-        match direction {
+        match ghost.actor.move_direction {
             actor::Direction::Still | actor::Direction::Right => {
                 self.draw_sprite(canvas, anim_frame, y, pos)
             }
             actor::Direction::Down => self.draw_sprite(canvas, 3 + anim_frame, y, pos),
             actor::Direction::Left => self.draw_sprite(canvas, 6 + anim_frame, y, pos),
             actor::Direction::Up => self.draw_sprite(canvas, 9 + anim_frame, y, pos),
+        }
+    }
+
+    fn draw_ghost_scatter(
+        &self,
+        canvas: &mut graphics::Canvas,
+        ghost: &ghost::Ghost,
+        pos: glam::Vec2,
+        frame: usize,
+    ) {
+        let anim_frame = ((frame / ANIM_FPS) % 3) as u32;
+        let flash_frame = ((frame / (ANIM_FPS * 2)) % 2) as u32;
+        match ghost.actor.move_direction {
+            actor::Direction::Still | actor::Direction::Right => {
+                self.draw_sprite(canvas, anim_frame, 4 + flash_frame, pos)
+            }
+            actor::Direction::Left => {
+                self.draw_sprite(canvas, 3 + anim_frame, 4 + flash_frame, pos)
+            }
+            actor::Direction::Up => self.draw_sprite(canvas, 6 + anim_frame, 4 + flash_frame, pos),
+            actor::Direction::Down => {
+                self.draw_sprite(canvas, 9 + anim_frame, 4 + flash_frame, pos)
+            }
         }
     }
 }

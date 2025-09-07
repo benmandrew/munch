@@ -9,7 +9,8 @@ pub enum Personality {
     Clyde,
 }
 
-enum Mode {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
     Chase,
     Scatter,
 }
@@ -17,7 +18,7 @@ enum Mode {
 pub struct Ghost {
     pub actor: actor::Actor,
     pub personality: Personality,
-    mode: Mode,
+    pub mode: Mode,
 }
 
 const POSSIBLE_DIRECTIONS: [actor::Direction; 4] = [

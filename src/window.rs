@@ -109,13 +109,7 @@ impl Window {
             ghost_x * config::TILE_SIZE + start_x,
             ghost_y * config::TILE_SIZE + start_y,
         );
-        self.spritesheet.draw_ghost(
-            canvas,
-            ghost.actor.move_direction,
-            pos,
-            self.frame,
-            ghost.personality,
-        );
+        self.spritesheet.draw_ghost(canvas, ghost, pos, self.frame);
     }
 
     fn draw_fps(&self, ctx: &Context, canvas: &mut Canvas) {
