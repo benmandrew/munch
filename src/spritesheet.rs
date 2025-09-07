@@ -93,10 +93,16 @@ impl SpriteSheet {
         pos: glam::Vec2,
         frame: usize,
     ) {
-        if ghost.mode == ghost::Mode::Chase {
-            self.draw_ghost_chase(canvas, ghost, pos, frame);
-        } else {
-            self.draw_ghost_scatter(canvas, ghost, pos, frame);
+        match ghost.mode {
+            ghost::Mode::Chase => {
+                self.draw_ghost_chase(canvas, ghost, pos, frame);
+            }
+            ghost::Mode::Scatter => {
+                self.draw_ghost_scatter(canvas, ghost, pos, frame);
+            }
+            ghost::Mode::Eaten => {
+                self.draw_ghost_eaten(canvas, ghost, pos);
+            }
         }
     }
 
@@ -144,6 +150,28 @@ impl SpriteSheet {
             actor::Direction::Down => {
                 self.draw_sprite(canvas, 9 + anim_frame, 4 + flash_frame, pos)
             }
+        }
+    }
+
+    fn draw_ghost_eaten(
+        &self,
+        canvas: &mut graphics::Canvas,
+        ghost: &ghost::Ghost,
+        pos: glam::Vec2,
+    ) {
+        let y = match ghost.personality {
+            ghost::Personality::Blinky => 0,
+            ghost::Personality::Inky => 1,
+            ghost::Personality::Pinky => 2,
+            ghost::Personality::Clyde => 3,
+        };
+        match ghost.actor.move_direction {
+            actor::Direction::Still | actor::Direction::Right => {
+                self.draw_sprite(canvas, 12, y, pos)
+            }
+            actor::Direction::Down => self.draw_sprite(canvas, 13, y, pos),
+            actor::Direction::Left => self.draw_sprite(canvas, 14, y, pos),
+            actor::Direction::Up => self.draw_sprite(canvas, 15, y, pos),
         }
     }
 }

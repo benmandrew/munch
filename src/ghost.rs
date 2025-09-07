@@ -13,6 +13,7 @@ pub enum Personality {
 pub enum Mode {
     Chase,
     Scatter,
+    Eaten,
 }
 
 pub struct Ghost {
@@ -61,6 +62,7 @@ impl Ghost {
                     Personality::Clyde => (0, maze.height - 1),
                 }
             }
+            Mode::Eaten => (maze.width / 2, maze.height / 2),
         };
         self.generate_next_tile_with_target(maze, &target);
     }
@@ -109,11 +111,23 @@ impl Ghost {
     }
 
     pub fn set_mode_scatter(&mut self) {
-        self.mode = Mode::Scatter;
+        if self.mode != Mode::Eaten {
+            self.mode = Mode::Scatter;
+        }
     }
 
     pub fn set_mode_chase(&mut self) {
-        self.mode = Mode::Chase;
+        if self.mode != Mode::Eaten {
+            self.mode = Mode::Chase;
+        }
+    }
+
+    pub fn eat_ghost(&mut self) -> bool {
+        if self.mode == Mode::Eaten {
+            return false;
+        }
+        self.mode = Mode::Eaten;
+        true
     }
 
     fn get_clyde_target(&self, munch: &actor::Actor, maze: &maze::Maze) -> (i32, i32) {

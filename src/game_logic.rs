@@ -118,15 +118,40 @@ impl GameLogic {
         self.add_score(dots_eaten, power_pellets_eaten);
     }
 
-    pub fn update(&mut self, time_delta: f32) -> GameResult {
-        self.munch.walk(self.move_direction, &self.maze, time_delta);
-        self.handle_eating(time_delta);
+    fn handle_ghost_movement(&mut self, time_delta: f32) {
         let blinky_pos = self.get_blinky_pos();
         for ghost in &mut self.ghosts {
             ghost.move_along_path(&self.maze, &self.munch, blinky_pos, time_delta);
+            if ghost.actor.get_pos() == (self.maze.width / 2, self.maze.height / 2 - 1)
+                && ghost.mode == ghost::Mode::Eaten
+            {
+                log::info!("{:?} has respawned", ghost.personality);
+                ghost.mode = ghost::Mode::Chase;
+            }
         }
-        if let Some(_index) = self.munch_ghost_collision() {
+    }
+
+    fn handle_ghost_collision(&mut self, ghost_index: usize) {
+        if self.energised.is_energised {
+            if self.ghosts[ghost_index].eat_ghost() {
+                log::info!("Munch has eaten {:?}", self.ghosts[ghost_index].personality);
+                self.score += 200;
+            }
+        } else {
+            log::info!(
+                "Munch collided with a {:?}.",
+                self.ghosts[ghost_index].personality
+            );
             panic!("Munch collided with a ghost!");
+        }
+    }
+
+    pub fn update(&mut self, time_delta: f32) -> GameResult {
+        self.munch.walk(self.move_direction, &self.maze, time_delta);
+        self.handle_eating(time_delta);
+        self.handle_ghost_movement(time_delta);
+        if let Some(index) = self.munch_ghost_collision() {
+            self.handle_ghost_collision(index);
         }
         Ok(())
     }

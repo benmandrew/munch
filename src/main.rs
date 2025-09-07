@@ -13,7 +13,7 @@ mod window;
 
 fn init_logger() {
     let mut builder = colog::basic_builder();
-    builder.filter_level(log::LevelFilter::Warn);
+    builder.filter_level(log::LevelFilter::Info);
     builder.init();
 }
 
