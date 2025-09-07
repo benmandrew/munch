@@ -1,4 +1,4 @@
-# Maze Configuration Legend
+# Maze Configuration
 
 The maze must be rectangular.
 
@@ -18,3 +18,7 @@ The maze must be rectangular.
 
 *There must be exactly one.\
 **Inky's pathing depends on Blinky.
+
+# Audio Files
+
+Audio files obtained from https://www.classicgaming.cc/classics/pac-man/sounds.
