@@ -19,7 +19,6 @@ fn init_logger() {
 }
 
 fn init_context() -> (Context, EventLoop<()>) {
-    let resources_dir = std::path::PathBuf::from("./resources");
     let window_mode = conf::WindowMode::default()
         .dimensions(1600.0, 1200.0)
         .resizable(true);
@@ -27,13 +26,13 @@ fn init_context() -> (Context, EventLoop<()>) {
     ContextBuilder::new("Munch", "Ben M. Andrew")
         .window_mode(window_mode)
         .window_setup(window_setup)
-        .add_resource_path(resources_dir)
         .build()
         .expect("Could not create ggez context")
 }
 
 fn init_config() -> config::Config {
-    match config::Config::from_file("resources/maze.txt") {
+    // match config::Config::from_file("resources/maze.txt") {
+    match config::Config::from_string(include_str!("../resources/maze.txt")) {
         Ok(config) => config,
         Err(e) => {
             log::error!("Error loading config: {}", e);

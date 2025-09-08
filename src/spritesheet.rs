@@ -10,7 +10,6 @@ pub struct SpriteSheet {
     sprite_v_height: f32,
 }
 
-const SPRITESHEET_PATH: &str = "/spritesheet.png";
 const SPRITE_WIDTH: u32 = 11;
 const SPRITE_HEIGHT: u32 = 11;
 const ANIM_FPS: usize = 60 / 6; // 6 frames per second
@@ -18,7 +17,10 @@ const DEATH_ANIM_FPS: usize = 60 / 3; // 3 frames per second
 
 impl SpriteSheet {
     pub fn new(ctx: &mut Context) -> Self {
-        let image = match graphics::Image::from_path(ctx, SPRITESHEET_PATH) {
+        let image = match graphics::Image::from_bytes(
+            ctx,
+            include_bytes!("../resources/spritesheet.png"),
+        ) {
             Ok(img) => img,
             Err(e) => {
                 log::error!("Failed to load spritesheet image: {}", e);

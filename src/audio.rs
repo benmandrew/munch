@@ -10,14 +10,20 @@ pub struct Audio {
     eat_ghost_sound: audio::Source,
 }
 
+macro_rules! audio_source {
+    ($ctx:expr, $path:expr) => {
+        audio::Source::from_data($ctx, audio::SoundData::from_bytes(include_bytes!($path))).unwrap()
+    };
+}
+
 impl Audio {
     pub fn new(ctx: &mut Context) -> Audio {
         Audio {
-            chomp_sound: audio::Source::new(ctx, "/chomp.wav").unwrap(),
-            power_pellet_sound: audio::Source::new(ctx, "/eatpowerpellet.wav").unwrap(),
-            death_sound: audio::Source::new(ctx, "/death.wav").unwrap(),
-            beginning_sound: audio::Source::new(ctx, "/beginning.wav").unwrap(),
-            eat_ghost_sound: audio::Source::new(ctx, "/eatghost.wav").unwrap(),
+            chomp_sound: audio_source!(ctx, "../resources/chomp.wav"),
+            power_pellet_sound: audio_source!(ctx, "../resources/eatpowerpellet.wav"),
+            death_sound: audio_source!(ctx, "../resources/death.wav"),
+            beginning_sound: audio_source!(ctx, "../resources/beginning.wav"),
+            eat_ghost_sound: audio_source!(ctx, "../resources/eatghost.wav"),
         }
     }
 

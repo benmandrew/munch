@@ -21,13 +21,6 @@ fn match_maze_char(c: char) -> Result<maze::Tile, String> {
 }
 
 impl Config {
-    pub fn from_file(file_path: &str) -> Result<Self, String> {
-        match std::fs::read_to_string(file_path) {
-            Ok(contents) => Self::from_string(&contents),
-            Err(e) => Err(format!("Failed to read config file: {}: {}", file_path, e)),
-        }
-    }
-
     fn add_tile(
         maze: &mut Vec<maze::Tile>,
         c: char,
