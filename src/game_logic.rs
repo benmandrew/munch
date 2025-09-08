@@ -1,7 +1,4 @@
-use core::panic;
-
 use ggez::input::keyboard::KeyCode;
-use ggez::GameResult;
 
 use crate::{actor, config, ghost, maze};
 
@@ -47,6 +44,11 @@ impl Energised {
     }
 }
 
+pub struct ReturnState {
+    pub eaten_power_pellet: bool,
+    pub eaten_ghost: bool,
+}
+
 pub struct GameLogic {
     pub maze: maze::Maze,
     pub munch: actor::Actor,
@@ -54,6 +56,7 @@ pub struct GameLogic {
     move_direction: actor::Direction,
     energised: Energised,
     pub score: u32,
+    pub munch_is_dead: bool,
 }
 
 impl GameLogic {
@@ -73,6 +76,7 @@ impl GameLogic {
             move_direction: actor::Direction::Still,
             energised: Energised::new(),
             score: 0,
+            munch_is_dead: false,
         }
     }
 
@@ -110,12 +114,13 @@ impl GameLogic {
         self.score += dots_eaten as u32 * 10 + power_pellets_eaten as u32 * 50;
     }
 
-    fn handle_eating(&mut self, time_delta: f32) {
+    fn handle_eating(&mut self, time_delta: f32) -> bool {
         let dots_eaten = self.maze.eat_dots(&self.munch);
         let power_pellets_eaten = self.maze.eat_power_pellets(&self.munch);
         self.energised
             .update(&mut self.ghosts, power_pellets_eaten, time_delta);
         self.add_score(dots_eaten, power_pellets_eaten);
+        power_pellets_eaten > 0
     }
 
     fn handle_ghost_movement(&mut self, time_delta: f32) {
@@ -130,29 +135,35 @@ impl GameLogic {
         }
     }
 
-    fn handle_ghost_collision(&mut self, ghost_index: usize) {
+    fn handle_ghost_collision(&mut self, ghost_index: usize) -> bool {
         if self.energised.is_energised {
             if self.ghosts[ghost_index].eat_ghost() {
                 log::info!("Munch has eaten {:?}", self.ghosts[ghost_index].personality);
                 self.score += 200;
+                return true;
             }
-        } else {
+        } else if self.ghosts[ghost_index].mode != ghost::Mode::Eaten {
             log::info!(
                 "Munch collided with {:?}.",
                 self.ghosts[ghost_index].personality
             );
-            panic!("Munch collided with a ghost!");
+            self.munch_is_dead = true;
         }
+        false
     }
 
-    pub fn update(&mut self, time_delta: f32) -> GameResult {
+    pub fn update(&mut self, time_delta: f32) -> ReturnState {
+        let mut rs = ReturnState {
+            eaten_power_pellet: false,
+            eaten_ghost: false,
+        };
         self.munch.walk(self.move_direction, &self.maze, time_delta);
-        self.handle_eating(time_delta);
         self.handle_ghost_movement(time_delta);
         if let Some(index) = self.munch_ghost_collision() {
-            self.handle_ghost_collision(index);
+            rs.eaten_ghost = self.handle_ghost_collision(index);
         }
-        Ok(())
+        rs.eaten_power_pellet = self.handle_eating(time_delta);
+        rs
     }
 }
 

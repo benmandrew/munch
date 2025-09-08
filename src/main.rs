@@ -3,6 +3,7 @@ use ggez::event::{self, EventLoop};
 use ggez::{Context, ContextBuilder};
 
 mod actor;
+mod audio;
 mod config;
 mod game;
 mod game_logic;
