@@ -26,6 +26,10 @@ impl Window {
         }
     }
 
+    pub fn reset_frame(&mut self) {
+        self.frame = 0;
+    }
+
     fn draw_wall(&self, canvas: &mut Canvas, x: f32, y: f32) {
         let rect = graphics::Rect::new(x, y, config::TILE_SIZE, config::TILE_SIZE);
         canvas.draw(
@@ -95,14 +99,25 @@ impl Window {
         (start_x, start_y)
     }
 
-    fn draw_munch(&self, canvas: &mut Canvas, munch: &actor::Actor, start_x: f32, start_y: f32) {
+    fn draw_munch(
+        &self,
+        canvas: &mut Canvas,
+        munch: &actor::Actor,
+        start_x: f32,
+        start_y: f32,
+        death_in_progress: bool,
+    ) {
         let (munch_x, munch_y) = munch.get_draw_pos();
         let pos = glam::Vec2::new(
             munch_x * config::TILE_SIZE + start_x,
             munch_y * config::TILE_SIZE + start_y,
         );
-        self.spritesheet
-            .draw_munch(canvas, munch.move_direction, pos, self.frame);
+        if !death_in_progress {
+            self.spritesheet
+                .draw_munch(canvas, munch.move_direction, pos, self.frame)
+        } else {
+            self.spritesheet.draw_munch_death(canvas, pos, self.frame)
+        }
     }
 
     fn draw_ghost(&self, canvas: &mut Canvas, ghost: &ghost::Ghost, start_x: f32, start_y: f32) {
@@ -138,11 +153,12 @@ impl Window {
         munch: &actor::Actor,
         ghosts: &Vec<ghost::Ghost>,
         score: u32,
+        death_in_progress: bool,
     ) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
         canvas.set_sampler(graphics::Sampler::nearest_clamp());
         let (start_x, start_y) = self.draw_maze(&mut canvas, maze);
-        self.draw_munch(&mut canvas, munch, start_x, start_y);
+        self.draw_munch(&mut canvas, munch, start_x, start_y, death_in_progress);
         for ghost in ghosts {
             self.draw_ghost(&mut canvas, ghost, start_x, start_y);
         }

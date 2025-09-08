@@ -13,7 +13,8 @@ pub struct SpriteSheet {
 const SPRITESHEET_PATH: &str = "/spritesheet.png";
 const SPRITE_WIDTH: u32 = 11;
 const SPRITE_HEIGHT: u32 = 11;
-const ANIM_FPS: usize = 60 / 5; // 5 frames per second
+const ANIM_FPS: usize = 60 / 6; // 6 frames per second
+const DEATH_ANIM_FPS: usize = 60 / 3; // 3 frames per second
 
 impl SpriteSheet {
     pub fn new(ctx: &mut Context) -> Self {
@@ -84,6 +85,13 @@ impl SpriteSheet {
             actor::Direction::Left => self.draw_sprite(canvas, 5 + anim_frame, 6, pos),
             actor::Direction::Up => self.draw_sprite(canvas, 7 + anim_frame, 6, pos),
         }
+    }
+
+    pub fn draw_munch_death(&self, canvas: &mut graphics::Canvas, pos: glam::Vec2, frame: usize) {
+        let anim_frame = ((frame / (DEATH_ANIM_FPS)) % 10) as u32;
+        let sprite_sheet_x = anim_frame % 4;
+        let sprite_sheet_y = anim_frame / 4;
+        self.draw_sprite(canvas, 12 + sprite_sheet_x, 4 + sprite_sheet_y, pos)
     }
 
     pub fn draw_ghost(
