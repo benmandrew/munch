@@ -79,17 +79,17 @@ impl Ghost {
                 }
             })
             .collect::<Vec<_>>();
-        let mut min_distance_sqr = 0;
+        let mut min_distance_sqr = u32::MAX;
         for (next_pos, dir) in next_pos_with_dirs {
             if maze.is_ghost_passable(next_pos.0, next_pos.1) {
                 let d = dist_sqr(&next_pos, target);
-                if d < min_distance_sqr || min_distance_sqr == 0 {
+                if d < min_distance_sqr {
                     min_distance_sqr = d;
                     self.actor.move_direction = dir;
                 }
             }
         }
-        if min_distance_sqr == 0 {
+        if min_distance_sqr == u32::MAX {
             // No valid moves, so reverse direction
             self.actor.move_direction = actor::reverse_dir(self.actor.move_direction);
         }
@@ -122,6 +122,7 @@ impl Ghost {
         }
     }
 
+    /// Returns false if the ghost was already eaten, and true otherwise
     pub fn eat_ghost(&mut self) -> bool {
         if self.mode == Mode::Eaten {
             return false;
