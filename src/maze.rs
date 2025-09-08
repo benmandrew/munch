@@ -27,15 +27,18 @@ pub struct Maze {
     pub height: i32,
     maze: Vec<Tile>,
     pub respawn_point: (i32, i32),
+    pub n_dots: i32,
 }
 
 impl Maze {
     pub fn new(width: i32, height: i32, maze: Vec<Tile>, respawn_point: (i32, i32)) -> Self {
+        let n_dots = maze.iter().filter(|&&t| t == Tile::Dot).count() as i32;
         Maze {
             width,
             height,
             maze,
             respawn_point,
+            n_dots,
         }
     }
 
@@ -46,6 +49,7 @@ impl Maze {
             height: 0,
             maze: Vec::new(),
             respawn_point: (0, 0),
+            n_dots: 0,
         }
     }
 
@@ -84,6 +88,7 @@ impl Maze {
                 self.maze[index] = Tile::Path;
             }
         }
+        self.n_dots -= eaten;
         eaten
     }
 

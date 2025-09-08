@@ -1,3 +1,4 @@
+use clap::Parser;
 use ggez::conf;
 use ggez::event::{self, EventLoop};
 use ggez::{Context, ContextBuilder};
@@ -12,10 +13,18 @@ mod maze;
 mod spritesheet;
 mod window;
 
-fn init_logger() {
+fn init_logger(log_level: log::LevelFilter) {
     let mut builder = colog::basic_builder();
-    builder.filter_level(log::LevelFilter::Info);
+    builder.filter_level(log_level);
     builder.init();
+}
+
+/// A simple program to greet someone
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)] // Reads version from Cargo.toml, uses doc comment for about
+struct Cli {
+    #[arg(short, long, default_value_t = log::LevelFilter::Warn)]
+    log_level: log::LevelFilter,
 }
 
 fn init_context() -> (Context, EventLoop<()>) {
@@ -42,7 +51,8 @@ fn init_config() -> config::Config {
 }
 
 fn main() {
-    init_logger();
+    let cli = Cli::parse();
+    init_logger(cli.log_level);
     let (mut ctx, event_loop) = init_context();
     let config = init_config();
     let game = game::Game::new(&mut ctx, config);

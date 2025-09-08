@@ -54,6 +54,8 @@ impl Game {
         if self.death_in_progress {
             return Ok(());
         }
+        log::info!("Munch is dead!");
+        println!("Munch is dead!");
         self.death_in_progress = true;
         self.window.reset_frame();
         self.audio.play_death(ctx);
@@ -81,6 +83,11 @@ impl Game {
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         self.sleep_frame();
+        if self.game_logic.maze.n_dots == 0 {
+            log::info!("All dots eaten! You win!");
+            println!("All dots eaten! You win!");
+            std::process::exit(0);
+        }
         let result = if self.startup_in_progress {
             self.update_startup(ctx)
         } else if self.game_logic.munch_is_dead {
